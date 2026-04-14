@@ -1107,9 +1107,11 @@ function buildRoom02() {
   // ── LEFT PANEL — video (room02-mom.mp4, silent loop)
   const videoEl = document.createElement('video');
   videoEl.setAttribute('src',         'room02-mom.mp4');
-  videoEl.setAttribute('muted',       '');
-  videoEl.setAttribute('loop',        '');
-  videoEl.setAttribute('playsinline', '');
+  videoEl.setAttribute('muted',            '');
+  videoEl.setAttribute('loop',             '');
+  videoEl.setAttribute('playsinline',      '');
+  videoEl.setAttribute('webkit-playsinline', '');
+  videoEl.setAttribute('autoplay',         '');
   videoEl.muted       = true;
   videoEl.loop        = true;
   videoEl.playsInline = true;
@@ -1308,9 +1310,11 @@ function buildRoom03() {
   // ── LEFT PANEL — video (room03-mom.mp4)
   const videoEl = document.createElement('video');
   videoEl.setAttribute('src',         'room03-mom.mp4');
-  videoEl.setAttribute('muted',       '');
-  videoEl.setAttribute('loop',        '');
-  videoEl.setAttribute('playsinline', '');
+  videoEl.setAttribute('muted',            '');
+  videoEl.setAttribute('loop',             '');
+  videoEl.setAttribute('playsinline',      '');
+  videoEl.setAttribute('webkit-playsinline', '');
+  videoEl.setAttribute('autoplay',         '');
   videoEl.muted       = true;
   videoEl.loop        = true;
   videoEl.playsInline = true;
@@ -1510,9 +1514,11 @@ function buildRoom04() {
   // ── LEFT PANEL — video (room04-video-trim.mp4) with warm shader
   const videoEl = document.createElement('video');
   videoEl.setAttribute('src',         'room04-video-trim.mp4');
-  videoEl.setAttribute('muted',       '');
-  videoEl.setAttribute('loop',        '');
-  videoEl.setAttribute('playsinline', '');
+  videoEl.setAttribute('muted',            '');
+  videoEl.setAttribute('loop',             '');
+  videoEl.setAttribute('playsinline',      '');
+  videoEl.setAttribute('webkit-playsinline', '');
+  videoEl.setAttribute('autoplay',         '');
   videoEl.muted       = true;
   videoEl.loop        = true;
   videoEl.playsInline = true;
@@ -1717,9 +1723,11 @@ function buildRoom05() {
   // ── LEFT PANEL — video (room05-video-trim.mp4) with cool blue shader
   const videoEl = document.createElement('video');
   videoEl.setAttribute('src',         'room05-video-trim.mp4');
-  videoEl.setAttribute('muted',       '');
-  videoEl.setAttribute('loop',        '');
-  videoEl.setAttribute('playsinline', '');
+  videoEl.setAttribute('muted',            '');
+  videoEl.setAttribute('loop',             '');
+  videoEl.setAttribute('playsinline',      '');
+  videoEl.setAttribute('webkit-playsinline', '');
+  videoEl.setAttribute('autoplay',         '');
   videoEl.muted       = true;
   videoEl.loop        = true;
   videoEl.playsInline = true;
@@ -1960,9 +1968,11 @@ function buildRoom06() {
   // ── LEFT PANEL — video (room06-video-trim.mp4) — natural color
   const videoEl = document.createElement('video');
   videoEl.setAttribute('src',         'room06-video-trim.mp4');
-  videoEl.setAttribute('muted',       '');
-  videoEl.setAttribute('loop',        '');
-  videoEl.setAttribute('playsinline', '');
+  videoEl.setAttribute('muted',            '');
+  videoEl.setAttribute('loop',             '');
+  videoEl.setAttribute('playsinline',      '');
+  videoEl.setAttribute('webkit-playsinline', '');
+  videoEl.setAttribute('autoplay',         '');
   videoEl.muted       = true;
   videoEl.loop        = true;
   videoEl.playsInline = true;
@@ -2234,9 +2244,11 @@ function buildEnding() {
   // ── Video panel (hidden until audio ends)
   const videoEl = document.createElement('video');
   videoEl.setAttribute('src',         'ending-video.mp4');
-  videoEl.setAttribute('muted',       '');
-  videoEl.setAttribute('loop',        '');
-  videoEl.setAttribute('playsinline', '');
+  videoEl.setAttribute('muted',            '');
+  videoEl.setAttribute('loop',             '');
+  videoEl.setAttribute('playsinline',      '');
+  videoEl.setAttribute('webkit-playsinline', '');
+  videoEl.setAttribute('autoplay',         '');
   videoEl.muted       = true;
   videoEl.loop        = true;
   videoEl.playsInline = true;
@@ -3860,6 +3872,22 @@ document.getElementById('enter-btn').addEventListener('click', () => {
     setTimeout(() => { hint.style.opacity = '0'; }, 9000);
   }, 2900);
 });
+
+// ── Mobile autoplay unlock — fire once on first user gesture
+(function () {
+  let unlocked = false;
+  function unlock() {
+    if (unlocked) return;
+    unlocked = true;
+    document.querySelectorAll('video').forEach(v => {
+      if (v.paused) v.play().catch(() => {});
+    });
+    document.removeEventListener('touchstart', unlock, true);
+    document.removeEventListener('click',      unlock, true);
+  }
+  document.addEventListener('touchstart', unlock, { capture: true, once: true, passive: true });
+  document.addEventListener('click',      unlock, { capture: true, once: true });
+})();
 
 document.getElementById('back-btn').addEventListener('click', () => {
   if      (activeScene === r06Scene) returnToRoom05();
