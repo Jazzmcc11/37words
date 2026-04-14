@@ -2368,7 +2368,7 @@ function buildEnding() {
   endFinalSp.material.color   = new THREE.Color(1.00, 1.00, 1.00);
   endScene.add(endFinalSp);
 
-  setTimeout(() => { endFinalActive = true; }, 90000);
+  setTimeout(() => { endFinalActive = true; }, 20000);
 }
 
 /* ═══════════════════════════════════════════
@@ -2634,7 +2634,7 @@ function stopRoom06Audio() {
 ═══════════════════════════════════════════ */
 
 const endingAudio = document.getElementById('ending-audio');
-endingAudio.volume = 0.38;
+endingAudio.volume = 1.0;
 
 function startEndingAudio() {
   endingAudio.currentTime = 0;
@@ -2644,6 +2644,7 @@ function startEndingAudio() {
     endingAudio.onended = null;
     if (!endVideoEl) return;
     endVideoEl.muted = false;
+    endVideoEl.volume = 1.0;
     const p = endVideoEl.play();
     if (p !== undefined) {
       p.catch(() => {
