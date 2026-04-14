@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Room 01 — The Promise</title>
+  <title>The 37 Words</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -19,27 +19,83 @@
       position: fixed; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 52px; background: #000; z-index: 100;
+      gap: 0; z-index: 100;
+      background: #000;
       transition: opacity 2.8s ease;
     }
     #landing.out { opacity: 0; pointer-events: none; }
 
-    .eyebrow {
-      font-size: 10px; letter-spacing: .48em;
-      text-transform: uppercase; color: rgba(255,255,255,.20);
+    /* Fullscreen background video */
+    #landing-video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      opacity: 0.55;
+      pointer-events: none;
     }
 
-    #enter-btn {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,.28);
-      color: rgba(255,255,255,.72);
-      font-family: Georgia, serif; font-size: 12px;
-      letter-spacing: .32em; text-transform: uppercase;
-      padding: 15px 56px; cursor: pointer;
-      transition: border-color .4s ease, color .4s ease;
-      outline: none;
+    /* Text stack — centered over video */
+    #landing-content {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 22px;
+      padding-bottom: 120px;
     }
-    #enter-btn:hover { border-color: rgba(255,255,255,.78); color: #fff; }
+
+    #landing-title {
+      font-family: Georgia, serif;
+      font-size: clamp(48px, 8vw, 88px);
+      font-weight: normal;
+      color: #fff;
+      letter-spacing: .06em;
+      text-align: center;
+      opacity: 0; transition: opacity 1.4s ease;
+      text-shadow: 0 2px 32px rgba(0,0,0,0.9);
+    }
+    #landing-subtitle {
+      font-family: Georgia, serif;
+      font-size: clamp(13px, 2vw, 18px);
+      color: #cc2222;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      text-align: center;
+      opacity: 0; transition: opacity 1.4s ease;
+      text-shadow: 0 1px 16px rgba(0,0,0,0.8);
+    }
+    #landing-tagline {
+      font-family: Georgia, serif;
+      font-size: clamp(11px, 1.4vw, 15px);
+      font-style: italic;
+      color: rgba(200,200,200,0.72);
+      text-align: center;
+      max-width: 480px;
+      line-height: 1.7;
+      opacity: 0; transition: opacity 1.4s ease;
+      text-shadow: 0 1px 12px rgba(0,0,0,0.9);
+    }
+
+    /* Enter button — fixed bottom center */
+    #enter-btn {
+      position: absolute; bottom: 60px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      background: transparent;
+      border: 1px solid rgba(180,20,20,0.7);
+      color: rgba(220,60,60,0.9);
+      font-family: Georgia, serif; font-size: 12px;
+      letter-spacing: .36em; text-transform: uppercase;
+      padding: 15px 56px; cursor: pointer;
+      box-shadow: 0 0 18px rgba(180,20,20,0.28), inset 0 0 18px rgba(180,20,20,0.06);
+      transition: border-color .4s ease, color .4s ease, box-shadow .4s ease;
+      outline: none;
+      opacity: 0; transition: opacity 1.4s ease, border-color .4s ease, color .4s ease, box-shadow .4s ease;
+    }
+    #enter-btn:hover {
+      border-color: rgba(220,40,40,1);
+      color: #ff4444;
+      box-shadow: 0 0 32px rgba(200,20,20,0.55), inset 0 0 24px rgba(180,20,20,0.12);
+    }
 
     /* ── Black transition overlay ─────────────────── */
 
@@ -108,21 +164,12 @@
     canvas.dragging { cursor: grabbing; }
     canvas.hovering { cursor: pointer; }
 
-    /* ── Warm amber/gold overlay — fades in for Room 03+  ── */
-    #warmth {
-      position: fixed; inset: 0;
-      background: rgba(255, 160, 50, 0.09);
-      pointer-events: none; z-index: 5;
-      opacity: 0;
-      transition: opacity 2.5s ease, background-color 2s ease;
-    }
-    /* Room 04: full warm gold breakthrough */
-    #warmth.gold {
-      background: rgba(255, 145, 20, 0.22);
-    }
   </style>
 </head>
 <body>
+
+<!-- Void door -->
+<img id="void-door-img" src="door-transition.png" style="display:none" crossorigin="anonymous">
 
 <!-- Preloaded assets for Room 01 -->
 <img id="r01sky"   src="room01-wall.png"     style="display:none" crossorigin="anonymous">
@@ -140,20 +187,38 @@
 <img id="r04sky"   src="room04-wall.png"     style="display:none" crossorigin="anonymous">
 <img id="r04paper" src="room04-paper1.jpg"   style="display:none" crossorigin="anonymous">
 
+<!-- Preloaded assets for Room 05 -->
+<img id="r05sky"   src="room05-wall.png"     style="display:none" crossorigin="anonymous">
+<img id="r05paper" src="room05-paper1.jpg"   style="display:none" crossorigin="anonymous">
+
+<!-- Preloaded assets for Room 06 -->
+<img id="r06sky"   src="room06-wall.png"     style="display:none" crossorigin="anonymous">
+<img id="r06paper" src="room06-paper1.jpg"   style="display:none" crossorigin="anonymous">
+
+<!-- Preloaded assets for The Legacy -->
+<img id="ending-sky" src="ending-wall.png"   style="display:none" crossorigin="anonymous">
+
 <!-- Audio -->
 <audio id="entry-audio" src="entry.mp3"              preload="auto"></audio>
 <audio id="r01-audio"   src="room01-audio-trim.mp3"  preload="auto"></audio>
 <audio id="r02-audio"   src="room02-audio-trim.mp3"  preload="auto"></audio>
 <audio id="r03-audio"   src="room03-audio-trim.mp3"  preload="auto"></audio>
-<audio id="r04-audio"   src="room04-audio.mp3"  preload="auto"></audio>
+<audio id="r04-audio"   src="room04-audio.mp3"       preload="auto"></audio>
+<audio id="r05-audio"   src="room05-audio-trim.mp3"  preload="auto"></audio>
+<audio id="r06-audio"     src="room06-audio-trim.mp3"  preload="auto"></audio>
+<audio id="ending-audio" src="ending-audio-trim.mp3"  preload="auto"></audio>
 
 <div id="landing">
-  <span class="eyebrow">The Void</span>
+  <video id="landing-video" src="intro-video.mp4" autoplay muted loop playsinline></video>
+  <div id="landing-content">
+    <div id="landing-title">The 37 Words</div>
+    <div id="landing-subtitle">A WebXR Memorial Experience</div>
+    <div id="landing-tagline">54 years. 37 words. Walk through the law that changed everything.</div>
+  </div>
   <button id="enter-btn">Enter the Space</button>
 </div>
 
 <div id="veil"></div>
-<div id="warmth"></div>
 <button id="back-btn">&#8592;&nbsp; The Void</button>
 <div id="clause-tip">Enter Room 01 — The Promise</div>
 
@@ -214,6 +279,44 @@ const R03_LAYERS = [
   { idx:[2,10,12,19,21,23,25,31],       rMin:15,  rMax:22,   fMin:14, fMax:22, oMin:0.06, oMax:0.16 },
 ];
 
+// Room 05 — institutional cool blue, fading with depth
+const R05_LAYERS = [
+  { idx:[0,6,11,13,18,26,34,35,36],    rMin:2.5, rMax:4.5,  fMin:42, fMax:54, oMin:0.75, oMax:0.95 },
+  { idx:[1,4,5,15,20,24,29,30,32,33],  rMin:5.5, rMax:8.5,  fMin:30, fMax:40, oMin:0.46, oMax:0.64 },
+  { idx:[3,7,8,9,14,16,17,22,27,28],   rMin:9.5, rMax:14,   fMin:22, fMax:30, oMin:0.22, oMax:0.36 },
+  { idx:[2,10,12,19,21,23,25,31],       rMin:15,  rMax:22,   fMin:14, fMax:22, oMin:0.07, oMax:0.17 },
+];
+
+// Blue tint per depth layer — bright institutional blue fading to deep navy
+const R05_BLUE = [
+  new THREE.Color(0.80, 0.90, 1.00),
+  new THREE.Color(0.65, 0.78, 1.00),
+  new THREE.Color(0.50, 0.65, 0.95),
+  new THREE.Color(0.38, 0.52, 0.88),
+];
+
+// Room 06 — final room, maximum vibrant energy
+const R06_LAYERS = [
+  { idx:[0,6,11,13,18,26,34,35,36],    rMin:2.5, rMax:4.5,  fMin:44, fMax:58, oMin:0.85, oMax:1.00 },
+  { idx:[1,4,5,15,20,24,29,30,32,33],  rMin:5.5, rMax:8.5,  fMin:32, fMax:44, oMin:0.58, oMax:0.78 },
+  { idx:[3,7,8,9,14,16,17,22,27,28],   rMin:9.5, rMax:14,   fMin:24, fMax:32, oMin:0.30, oMax:0.48 },
+  { idx:[2,10,12,19,21,23,25,31],       rMin:15,  rMax:22,   fMin:16, fMax:24, oMin:0.12, oMax:0.24 },
+];
+
+// Vibrant full-spectrum tints per word index — each word gets its own hue
+const R06_SPECTRUM = [
+  new THREE.Color(0.20, 1.00, 0.45),  // green
+  new THREE.Color(1.00, 0.85, 0.15),  // gold
+  new THREE.Color(0.25, 0.75, 1.00),  // sky blue
+  new THREE.Color(1.00, 0.40, 0.25),  // orange-red
+  new THREE.Color(0.85, 0.30, 1.00),  // purple
+  new THREE.Color(0.15, 0.90, 0.85),  // teal
+  new THREE.Color(1.00, 0.60, 0.10),  // amber
+  new THREE.Color(0.50, 0.90, 0.30),  // lime
+  new THREE.Color(0.95, 0.25, 0.55),  // magenta
+  new THREE.Color(0.30, 0.60, 1.00),  // periwinkle
+];
+
 // Room 02 — same word distribution, slightly darker to feel more urgent
 const R02_LAYERS = [
   { idx:[0,6,11,13,18,26,34,35,36],    rMin:2.5, rMax:4.5,  fMin:40, fMax:52, oMin:0.62, oMax:0.84 },
@@ -231,6 +334,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+renderer.domElement.style.display = 'none';
 
 // Two scenes
 const voidScene = new THREE.Scene();
@@ -248,6 +352,15 @@ r03Scene.background = new THREE.Color(0x000000);
 
 const r04Scene = new THREE.Scene();
 r04Scene.background = new THREE.Color(0x000000);
+
+const r05Scene = new THREE.Scene();
+r05Scene.background = new THREE.Color(0x000000);
+
+const r06Scene = new THREE.Scene();
+r06Scene.background = new THREE.Color(0x000000);
+
+const endScene = new THREE.Scene();
+endScene.background = new THREE.Color(0x000000);
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
 
@@ -422,6 +535,33 @@ function mkColorMesh(tex, w, h) {
 }
 
 /* ═══════════════════════════════════════════
+   COOL-BLUE PLANE FACTORY (Room 05 panels)
+   Greyscale → cool blue tint for video/paper.
+═══════════════════════════════════════════ */
+
+const COOL_FRAG = `
+  uniform sampler2D uTex;
+  uniform float uBright;
+  varying vec2 vUv;
+  void main() {
+    vec4 c = texture2D(uTex, vUv);
+    float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)) * uBright;
+    gl_FragColor = vec4(g * 0.72, g * 0.86, g * 1.00, c.a);
+  }
+`;
+
+function mkCoolMesh(tex, w, h, bright) {
+  const geo = new THREE.PlaneGeometry(w, h);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTex: { value: tex }, uBright: { value: bright } },
+    vertexShader: GREY_VERT,
+    fragmentShader: COOL_FRAG,
+    side: THREE.FrontSide,
+  });
+  return new THREE.Mesh(geo, mat);
+}
+
+/* ═══════════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════════ */
 
@@ -439,9 +579,9 @@ function rndSphere(r0, r1) {
 // Void-specific: words appear in a volume in front of the user
 function rndVoidPos() {
   return new THREE.Vector3(
-    -8 + Math.random() * 16,     // x: -8 to 8
-    0.5 + Math.random() * 3.5,   // y: 0.5 to 4
-    -(5 + Math.random() * 20)    // z: -5 to -25
+    -12 + Math.random() * 24,    // x: -12 to 12
+    0.5 + Math.random() * 5.5,   // y: 0.5 to 6
+    -(5 + Math.random() * 35)    // z: -5 to -40
   );
 }
 
@@ -516,6 +656,83 @@ VOID_CLAUSES.forEach((c) => {
 });
 
 /* ═══════════════════════════════════════════
+   VOID DOOR — smoke, lit path, gym door
+   Appears after entry.mp3 ends.
+═══════════════════════════════════════════ */
+
+let voidDoorBuilt    = false;
+let voidDoorHitBox   = null;
+let voidDoorGlowMat  = null;
+let voidDoorMesh     = null;
+let voidSmokePlanes  = [];
+let voidPathPlanes   = [];
+let voidDoorActive   = false; // true after entry audio ends
+
+function buildVoidDoor() {
+  if (voidDoorBuilt) return;
+  voidDoorBuilt = true;
+
+  // ── Lit path — 5 soft glow strips on the floor leading to door
+  for (let i = 0; i < 5; i++) {
+    const geo = new THREE.PlaneGeometry(0.28, 1.4);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true,
+      opacity: 0, depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    const zPos = -3.5 - i * 1.3;
+    mesh.position.set(0, -0.98, zPos);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.userData.ph  = i * 0.8;
+    mesh.userData.tOp = 0.18 + i * 0.04;
+    voidScene.add(mesh);
+    voidPathPlanes.push(mesh);
+  }
+
+  // ── Gym door — door-transition.png at (0, 1.8, -10)
+  const doorImg = document.getElementById('void-door-img');
+  function addDoorMesh(imgEl) {
+    const tex = new THREE.Texture(imgEl);
+    tex.needsUpdate = true;
+    voidDoorMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(5.5, 7.5),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.FrontSide })
+    );
+    voidDoorMesh.position.set(0, 1.8, -10);
+    voidScene.add(voidDoorMesh);
+
+    // Invisible hit-box for click detection
+    voidDoorHitBox = new THREE.Mesh(
+      new THREE.PlaneGeometry(5.5, 7.5),
+      new THREE.MeshBasicMaterial({ visible: false, side: THREE.FrontSide })
+    );
+    voidDoorHitBox.position.set(0, 1.8, -9.96);
+    voidScene.add(voidDoorHitBox);
+  }
+
+  if (doorImg && doorImg.complete && doorImg.naturalWidth > 0) {
+    addDoorMesh(doorImg);
+  } else if (doorImg) {
+    doorImg.onload  = () => addDoorMesh(doorImg);
+    doorImg.onerror = () => {
+      // No image — dim rectangle fallback
+      voidDoorMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.5, 7.5),
+        new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, side: THREE.FrontSide })
+      );
+      voidDoorMesh.position.set(0, 1.8, -10);
+      voidScene.add(voidDoorMesh);
+      voidDoorHitBox = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.5, 7.5),
+        new THREE.MeshBasicMaterial({ visible: false })
+      );
+      voidDoorHitBox.position.set(0, 1.8, -9.96);
+      voidScene.add(voidDoorHitBox);
+    };
+  }
+}
+
+/* ═══════════════════════════════════════════
    ROOM 01 SCENE
 ═══════════════════════════════════════════ */
 
@@ -549,25 +766,7 @@ function buildRoom01() {
   function addBackWall(imgEl) {
     const tex = new THREE.Texture(imgEl);
     tex.needsUpdate = true;
-    const geo = new THREE.PlaneGeometry(14, 8);
-    const mat = new THREE.ShaderMaterial({
-      uniforms: { uTex: { value: tex } },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
-      `,
-      fragmentShader: `
-        uniform sampler2D uTex;
-        varying vec2 vUv;
-        void main() {
-          vec4 c = texture2D(uTex, vUv);
-          float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
-          gl_FragColor = vec4(g, g, g, 1.0);
-        }
-      `,
-      side: THREE.FrontSide,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = mkColorMesh(tex, 14, 8);
     mesh.position.set(0, 1.8, -8);
     r01Scene.add(mesh);
   }
@@ -794,6 +993,35 @@ function buildWall() {
 }
 
 /* ═══════════════════════════════════════════
+   ROOM 06 STATE
+═══════════════════════════════════════════ */
+
+const r06Items       = [];
+const r06Meshes      = [];
+let   r06HeroSp      = null;
+let   r06Built       = false;
+let   r06VideoEl     = null;
+let   r06FinalSp     = null;   // "The 37 Words that changed everything"
+let   r06FinalActive = false;  // set true after 90s
+let   r06DoorGroup   = null;
+let   r06DoorGlowMat = null;
+let   r06DoorHitBox  = null;
+let   r06WallGlowActive = false;
+
+/* ═══════════════════════════════════════════
+   ROOM 05 STATE
+═══════════════════════════════════════════ */
+
+const r05Items       = [];
+const r05Meshes      = [];
+let   r05HeroSp      = null;
+let   r05Built       = false;
+let   r05VideoEl     = null;
+let   r05DoorGroup   = null;
+let   r05DoorGlowMat = null;
+let   r05DoorHitBox  = null;
+
+/* ═══════════════════════════════════════════
    ROOM 04 STATE
 ═══════════════════════════════════════════ */
 
@@ -834,25 +1062,7 @@ function buildRoom02() {
   function addBackWall02(imgEl) {
     const tex = new THREE.Texture(imgEl);
     tex.needsUpdate = true;
-    const geo = new THREE.PlaneGeometry(14, 8);
-    const mat = new THREE.ShaderMaterial({
-      uniforms: { uTex: { value: tex } },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
-      `,
-      fragmentShader: `
-        uniform sampler2D uTex;
-        varying vec2 vUv;
-        void main() {
-          vec4 c = texture2D(uTex, vUv);
-          float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)) * 0.65;
-          gl_FragColor = vec4(g, g, g, 1.0);
-        }
-      `,
-      side: THREE.FrontSide,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = mkColorMesh(tex, 14, 8);
     mesh.position.set(0, 1.8, -8);
     r02Scene.add(mesh);
   }
@@ -1053,25 +1263,7 @@ function buildRoom03() {
   function addBackWall03(imgEl) {
     const tex = new THREE.Texture(imgEl);
     tex.needsUpdate = true;
-    const geo = new THREE.PlaneGeometry(14, 8);
-    const mat = new THREE.ShaderMaterial({
-      uniforms: { uTex: { value: tex } },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
-      `,
-      fragmentShader: `
-        uniform sampler2D uTex;
-        varying vec2 vUv;
-        void main() {
-          vec4 c = texture2D(uTex, vUv);
-          float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)) * 0.78;
-          gl_FragColor = vec4(g, g, g, 1.0);
-        }
-      `,
-      side: THREE.FrontSide,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = mkColorMesh(tex, 14, 8);
     mesh.position.set(0, 1.8, -8);
     r03Scene.add(mesh);
   }
@@ -1461,6 +1653,725 @@ function buildWall04() {
 }
 
 /* ═══════════════════════════════════════════
+   ROOM 05 — THE BROADER FIGHT
+   Institutional cool blue — the law expands.
+═══════════════════════════════════════════ */
+
+let r05WallGlowActive = false;
+let r05T0             = null;
+
+function buildRoom05() {
+  if (r05Built) return;
+  r05Built = true;
+
+  // ── Back wall — room05-wall.png at natural full color
+  function addBackWall05(imgEl) {
+    const tex = new THREE.Texture(imgEl);
+    tex.needsUpdate = true;
+    const mesh = mkColorMesh(tex, 14, 8);
+    mesh.position.set(0, 1.8, -8);
+    r05Scene.add(mesh);
+  }
+
+  const skyImg = document.getElementById('r05sky');
+  if (skyImg.complete && skyImg.naturalWidth > 0) {
+    addBackWall05(skyImg);
+  } else {
+    skyImg.onload  = () => addBackWall05(skyImg);
+    skyImg.onerror = () => {};
+  }
+
+  // ── Hero clause — cool blue glow
+  r05HeroSp = mkSprite('be subjected to discrimination\nunder any education program\nor activity', {
+    fontSize: 44, bright: 1.0, glow: true
+  });
+  r05HeroSp.scale.multiplyScalar(1.5);
+  r05HeroSp.position.set(0, 3.5, -6.0);
+  r05HeroSp.material.opacity = 0;
+  r05HeroSp.material.color   = new THREE.Color(0.72, 0.88, 1.00);
+  r05Scene.add(r05HeroSp);
+
+  // ── 37 words at 4 depth layers — cool blue tinted
+  R05_LAYERS.forEach((layer, li) => {
+    layer.idx.forEach((wordIdx) => {
+      const bright = layer.oMin + Math.random() * (layer.oMax - layer.oMin);
+      const fSize  = layer.fMin + Math.floor(Math.random() * (layer.fMax - layer.fMin));
+      const sp     = mkSprite(WORDS[wordIdx], { fontSize: fSize, bright });
+      sp.material.color = R05_BLUE[li].clone();
+      const bp     = rndSphere(layer.rMin, layer.rMax);
+      sp.position.copy(bp);
+      r05Scene.add(sp);
+      r05Items.push({
+        sp,
+        delay: 0.3 + li * 0.6 + Math.random() * 1.2,
+        tOp:   bright,
+        bp:    bp.clone(),
+        ph:    Math.random() * Math.PI * 2,
+        phY:   Math.random() * Math.PI * 2,
+        spd:   0.10 + Math.random() * 0.20,
+        amp:   layer.rMin * 0.022 + Math.random() * 0.10,
+      });
+    });
+  });
+
+  // ── LEFT PANEL — video (room05-video-trim.mp4) with cool blue shader
+  const videoEl = document.createElement('video');
+  videoEl.setAttribute('src',         'room05-video-trim.mp4');
+  videoEl.setAttribute('muted',       '');
+  videoEl.setAttribute('loop',        '');
+  videoEl.setAttribute('playsinline', '');
+  videoEl.muted       = true;
+  videoEl.loop        = true;
+  videoEl.playsInline = true;
+  videoEl.crossOrigin = 'anonymous';
+  videoEl.style.display = 'none';
+  document.body.appendChild(videoEl);
+  r05VideoEl = videoEl;
+
+  const videoTex = new THREE.VideoTexture(videoEl);
+  videoTex.minFilter = THREE.LinearFilter;
+  videoTex.magFilter = THREE.LinearFilter;
+
+  const tvPanel = mkCoolMesh(videoTex, 4.0, 3.0, 0.82);
+  const bezelGeo = new THREE.PlaneGeometry(4.18, 3.18);
+  const bezelMat = new THREE.MeshBasicMaterial({ color: 0x050810, side: THREE.FrontSide });
+  const bezel    = new THREE.Mesh(bezelGeo, bezelMat);
+  bezel.position.set(-5, 1.8, -7.01);
+  r05Scene.add(bezel);
+  tvPanel.position.set(-5, 1.8, -7);
+  tvPanel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+  r05Scene.add(tvPanel);
+  r05Meshes.push(tvPanel);
+  r05Meshes.push(bezel);
+  bezel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+
+  // ── RIGHT PANEL — newspaper image (room05-paper1.jpg) with cool blue canvas
+  function buildPaperPanel05(imgEl) {
+    const CW = 520, CH = 680;
+    const cv  = document.createElement('canvas');
+    cv.width  = CW; cv.height = CH;
+    const ctx = cv.getContext('2d');
+
+    // Cool steel-grey base
+    ctx.fillStyle = '#5a6070';
+    ctx.fillRect(0, 0, CW, CH);
+
+    const BANNER = 88;
+    const iw = imgEl.naturalWidth || CW, ih = imgEl.naturalHeight || CH;
+    const scale = Math.max((CW - 24) / iw, (CH - BANNER - 24) / ih);
+    const dw = iw * scale, dh = ih * scale;
+    ctx.drawImage(imgEl, (CW - dw) * 0.5, BANNER + (CH - BANNER - dh) * 0.5, dw, dh);
+
+    for (let i = 0; i < 3000; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.04})`;
+      ctx.fillRect(Math.random() * CW, Math.random() * CH, 1, 1);
+    }
+
+    const vig = ctx.createRadialGradient(CW/2, CH/2, CW*0.3, CW/2, CH/2, CW*0.85);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, CW, CH);
+
+    ctx.strokeStyle = '#0e1420'; ctx.lineWidth = 7;
+    ctx.strokeRect(6, 6, CW - 12, CH - 12);
+    ctx.strokeStyle = '#1c2840'; ctx.lineWidth = 2;
+    ctx.strokeRect(14, 14, CW - 28, CH - 28);
+
+    ctx.fillStyle = 'rgba(6,10,20,0.92)';
+    ctx.fillRect(0, 0, CW, BANNER);
+    ctx.strokeStyle = '#2e4878'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(18, BANNER - 8); ctx.lineTo(CW - 18, BANNER - 8); ctx.stroke();
+
+    ctx.fillStyle = '#c0cce0';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 20px Georgia, serif';
+    ctx.fillText('THE BROADER FIGHT', CW / 2, 34);
+    ctx.font = '13px Georgia, serif';
+    ctx.fillStyle = '#8898b8';
+    ctx.fillText('Courts Expand Title IX\'s Reach', CW / 2, 56);
+    ctx.font = 'italic 10px Georgia, serif';
+    ctx.fillStyle = '#5a6880';
+    ctx.fillText('Every program, every activity — no exceptions', CW / 2, 74);
+
+    const tex = new THREE.CanvasTexture(cv);
+    const mesh = mkCoolMesh(tex, 4.0, 3.0, 0.88);
+    mesh.position.set(5, 1.8, -7);
+    mesh.rotation.y = 0;
+    mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+    r05Scene.add(mesh);
+    r05Meshes.push(mesh);
+  }
+
+  const paperImg = document.getElementById('r05paper');
+  if (paperImg.complete && paperImg.naturalWidth > 0) {
+    buildPaperPanel05(paperImg);
+  } else {
+    paperImg.onload  = () => buildPaperPanel05(paperImg);
+    paperImg.onerror = () => {
+      const geo  = new THREE.PlaneGeometry(4.0, 3.0);
+      const mat  = new THREE.MeshBasicMaterial({ color: 0x0a0e1a, side: THREE.FrontSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(5, 1.8, -7);
+      mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+      r05Scene.add(mesh);
+      r05Meshes.push(mesh);
+    };
+  }
+
+  buildWall05();
+}
+
+function buildWall05() {
+  const WW = 9, WH = 6, WZ = -8, cy = 1.8;
+
+  // Cool blue glow edges
+  r05DoorGlowMat = new THREE.MeshBasicMaterial({
+    color: 0x88aaff, transparent: true, opacity: 0,
+    depthWrite: false, side: THREE.FrontSide,
+  });
+
+  const GT = 0.06, glowZ = WZ + 0.02;
+  [
+    [WW, GT,  0,        cy + WH / 2],
+    [WW, GT,  0,        cy - WH / 2],
+    [GT, WH, -WW / 2,   cy],
+    [GT, WH,  WW / 2,   cy],
+  ].forEach(([w, h, x, y]) => {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), r05DoorGlowMat);
+    mesh.position.set(x, y, glowZ);
+    r05Scene.add(mesh);
+  });
+
+  r05DoorGroup = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW + 0.6, WH + 0.6),
+    new THREE.MeshBasicMaterial({ color: 0x88aaff, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide })
+  );
+  r05DoorGroup.position.set(0, cy, WZ - 0.01);
+  r05Scene.add(r05DoorGroup);
+
+  r05DoorHitBox = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW, WH),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.FrontSide })
+  );
+  r05DoorHitBox.position.set(0, cy, WZ + 0.03);
+  r05Scene.add(r05DoorHitBox);
+
+  setTimeout(() => { r05WallGlowActive = true; }, 60000);
+}
+
+/* ═══════════════════════════════════════════
+   ROOM 06 — THE PROOF
+   Full vibrant color — maximum energy. Final room.
+═══════════════════════════════════════════ */
+
+let r06T0 = null;
+
+function mkStatPanel(lines, accentColor) {
+  // lines: array of {text, size, color} objects
+  // Returns a floating canvas-based sprite
+  const DPR2 = Math.min(window.devicePixelRatio, 2);
+  const CW = 480 * DPR2, CH = 200 * DPR2;
+  const cv  = document.createElement('canvas');
+  cv.width  = CW; cv.height = CH;
+  const ctx = cv.getContext('2d');
+
+  // Background — dark with subtle border
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(0, 0, CW, CH);
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth   = DPR2 * 2;
+  ctx.strokeRect(DPR2 * 2, DPR2 * 2, CW - DPR2 * 4, CH - DPR2 * 4);
+
+  ctx.textAlign = 'center';
+  let y = DPR2 * 38;
+  for (const line of lines) {
+    ctx.font      = `${line.bold ? 'bold ' : ''}${line.size * DPR2}px Georgia, serif`;
+    ctx.fillStyle = line.color || '#ffffff';
+    ctx.fillText(line.text, CW / 2, y);
+    y += line.size * DPR2 * 1.5;
+  }
+
+  const tex = new THREE.CanvasTexture(cv);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false });
+  const sp  = new THREE.Sprite(mat);
+  const W   = (CW / DPR2) / 245;
+  const H   = (CH / DPR2) / 245;
+  sp.scale.set(W, H, 1);
+  return sp;
+}
+
+function buildRoom06() {
+  if (r06Built) return;
+  r06Built = true;
+
+  // ── Back wall — room06-wall.png at natural full color
+  function addBackWall06(imgEl) {
+    const tex = new THREE.Texture(imgEl);
+    tex.needsUpdate = true;
+    const mesh = mkColorMesh(tex, 14, 8);
+    mesh.position.set(0, 1.8, -8);
+    r06Scene.add(mesh);
+  }
+
+  const skyImg = document.getElementById('r06sky');
+  if (skyImg.complete && skyImg.naturalWidth > 0) {
+    addBackWall06(skyImg);
+  } else {
+    skyImg.onload  = () => addBackWall06(skyImg);
+    skyImg.onerror = () => {};
+  }
+
+  // ── Hero clause — vibrant green glow
+  r06HeroSp = mkSprite('receiving Federal\nfinancial assistance', {
+    fontSize: 50, bright: 1.0, glow: true
+  });
+  r06HeroSp.scale.multiplyScalar(1.5);
+  r06HeroSp.position.set(0, 3.5, -6.0);
+  r06HeroSp.material.opacity = 0;
+  r06HeroSp.material.color   = new THREE.Color(0.20, 1.00, 0.45);
+  r06Scene.add(r06HeroSp);
+
+  // ── 37 words — each word gets a spectrum color cycling through R06_SPECTRUM
+  R06_LAYERS.forEach((layer, li) => {
+    layer.idx.forEach((wordIdx) => {
+      const bright = layer.oMin + Math.random() * (layer.oMax - layer.oMin);
+      const fSize  = layer.fMin + Math.floor(Math.random() * (layer.fMax - layer.fMin));
+      const sp     = mkSprite(WORDS[wordIdx], { fontSize: fSize, bright });
+      sp.material.color = R06_SPECTRUM[wordIdx % R06_SPECTRUM.length].clone();
+      // Fade color intensity with depth
+      if (li > 0) sp.material.color.multiplyScalar(1.0 - li * 0.18);
+      const bp = rndSphere(layer.rMin, layer.rMax);
+      sp.position.copy(bp);
+      r06Scene.add(sp);
+      r06Items.push({
+        sp,
+        delay: 0.2 + li * 0.5 + Math.random() * 1.0,
+        tOp:   bright,
+        bp:    bp.clone(),
+        ph:    Math.random() * Math.PI * 2,
+        phY:   Math.random() * Math.PI * 2,
+        spd:   0.10 + Math.random() * 0.22,
+        amp:   layer.rMin * 0.022 + Math.random() * 0.10,
+      });
+    });
+  });
+
+  // ── LEFT PANEL — video (room06-video-trim.mp4) — natural color
+  const videoEl = document.createElement('video');
+  videoEl.setAttribute('src',         'room06-video-trim.mp4');
+  videoEl.setAttribute('muted',       '');
+  videoEl.setAttribute('loop',        '');
+  videoEl.setAttribute('playsinline', '');
+  videoEl.muted       = true;
+  videoEl.loop        = true;
+  videoEl.playsInline = true;
+  videoEl.crossOrigin = 'anonymous';
+  videoEl.style.display = 'none';
+  document.body.appendChild(videoEl);
+  r06VideoEl = videoEl;
+
+  const videoTex = new THREE.VideoTexture(videoEl);
+  videoTex.minFilter = THREE.LinearFilter;
+  videoTex.magFilter = THREE.LinearFilter;
+
+  // Full color video panel
+  const tvPanel = mkColorMesh(videoTex, 4.0, 3.0);
+  const bezelGeo = new THREE.PlaneGeometry(4.18, 3.18);
+  const bezelMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0a, side: THREE.FrontSide });
+  const bezel    = new THREE.Mesh(bezelGeo, bezelMat);
+  bezel.position.set(-5, 1.8, -7.01);
+  r06Scene.add(bezel);
+  tvPanel.position.set(-5, 1.8, -7);
+  tvPanel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+  r06Scene.add(tvPanel);
+  r06Meshes.push(tvPanel);
+  r06Meshes.push(bezel);
+  bezel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+
+  // ── RIGHT PANEL — newspaper (room06-paper1.jpg) — full color
+  function buildPaperPanel06(imgEl) {
+    const CW = 520, CH = 680;
+    const cv  = document.createElement('canvas');
+    cv.width  = CW; cv.height = CH;
+    const ctx = cv.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, CW, CH);
+
+    const BANNER = 88;
+    const iw = imgEl.naturalWidth || CW, ih = imgEl.naturalHeight || CH;
+    const scale = Math.max((CW - 24) / iw, (CH - BANNER - 24) / ih);
+    const dw = iw * scale, dh = ih * scale;
+    ctx.drawImage(imgEl, (CW - dw) * 0.5, BANNER + (CH - BANNER - dh) * 0.5, dw, dh);
+
+    for (let i = 0; i < 1500; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.025})`;
+      ctx.fillRect(Math.random() * CW, Math.random() * CH, 1, 1);
+    }
+
+    const vig = ctx.createRadialGradient(CW/2, CH/2, CW*0.35, CW/2, CH/2, CW*0.85);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.28)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, CW, CH);
+
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 5;
+    ctx.strokeRect(5, 5, CW - 10, CH - 10);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.88)';
+    ctx.fillRect(0, 0, CW, BANNER);
+    ctx.strokeStyle = '#33ff88'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(18, BANNER - 8); ctx.lineTo(CW - 18, BANNER - 8); ctx.stroke();
+
+    ctx.fillStyle = '#33ff88';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 20px Georgia, serif';
+    ctx.fillText('THE PROOF IS IN', CW / 2, 34);
+    ctx.font = '13px Georgia, serif';
+    ctx.fillStyle = '#ccffdd';
+    ctx.fillText('50 Years of Women\'s Sports Progress', CW / 2, 56);
+    ctx.font = 'italic 10px Georgia, serif';
+    ctx.fillStyle = '#88ccaa';
+    ctx.fillText('The numbers don\'t lie', CW / 2, 74);
+
+    const tex = new THREE.CanvasTexture(cv);
+    // Full color for this final room
+    const geo  = new THREE.PlaneGeometry(4.0, 3.0);
+    const mat  = new THREE.ShaderMaterial({
+      uniforms: { uTex: { value: tex } },
+      vertexShader: GREY_VERT,
+      fragmentShader: COLOR_FRAG,
+      side: THREE.FrontSide,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(5, 1.8, -7);
+    mesh.rotation.y = 0;
+    mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+    r06Scene.add(mesh);
+    r06Meshes.push(mesh);
+  }
+
+  const paperImg = document.getElementById('r06paper');
+  if (paperImg.complete && paperImg.naturalWidth > 0) {
+    buildPaperPanel06(paperImg);
+  } else {
+    paperImg.onload  = () => buildPaperPanel06(paperImg);
+    paperImg.onerror = () => {
+      const geo  = new THREE.PlaneGeometry(4.0, 3.0);
+      const mat  = new THREE.MeshBasicMaterial({ color: 0x081808, side: THREE.FrontSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(5, 1.8, -7);
+      mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+      r06Scene.add(mesh);
+      r06Meshes.push(mesh);
+    };
+  }
+
+  // ── STAT PANELS — 4 floating cards in the space
+  const STATS = [
+    {
+      lines: [
+        { text: '54 YEARS', size: 28, bold: true, color: '#ff88cc' },
+        { text: 'since Title IX was signed', size: 14, color: '#ffbbdd' },
+        { text: 'June 23, 1972', size: 12, color: '#cc7799' },
+      ],
+      accent: '#ff88cc',
+      pos: new THREE.Vector3(0, 5.5, -10),
+    },
+    {
+      lines: [
+        { text: '9.9 MILLION', size: 26, bold: true, color: '#33ff88' },
+        { text: 'viewers', size: 16, color: '#aaffcc' },
+        { text: '2026 Women\'s Final Four', size: 12, color: '#88ccaa' },
+      ],
+      accent: '#33ff88',
+      pos: new THREE.Vector3(-6, 4.5, -9),
+    },
+    {
+      lines: [
+        { text: 'WNBA TICKET SALES', size: 16, bold: true, color: '#ffdd33' },
+        { text: 'UP 145%', size: 28, bold: true, color: '#ffee66' },
+        { text: 'in 2025', size: 12, color: '#ccbb66' },
+      ],
+      accent: '#ffdd33',
+      pos: new THREE.Vector3(6, 4.5, -9),
+    },
+    {
+      lines: [
+        { text: '18,064', size: 28, bold: true, color: '#44aaff' },
+        { text: 'avg fans per game', size: 14, color: '#88ccff' },
+        { text: 'Golden State Valkyries record', size: 11, color: '#5588aa' },
+      ],
+      accent: '#44aaff',
+      pos: new THREE.Vector3(-4, 5.0, -11),
+    },
+    {
+      lines: [
+        { text: '$1 MILLION+', size: 24, bold: true, color: '#ff6644' },
+        { text: 'max WNBA contracts', size: 14, color: '#ffaa88' },
+        { text: '2025 CBA — first time ever', size: 11, color: '#cc7755' },
+      ],
+      accent: '#ff6644',
+      pos: new THREE.Vector3(4, 5.0, -11),
+    },
+  ];
+
+  STATS.forEach((s, i) => {
+    const sp = mkStatPanel(s.lines, s.accent);
+    sp.position.copy(s.pos);
+    sp.material.opacity = 0;
+    r06Scene.add(sp);
+    r06Items.push({
+      sp,
+      delay: 1.5 + i * 0.8,
+      tOp:   0.92,
+      bp:    s.pos.clone(),
+      ph:    i * 1.57,
+      phY:   i * 0.8,
+      spd:   0.08 + i * 0.02,
+      amp:   0.06,
+      isStat: true,
+    });
+  });
+
+  // ── FINAL TEXT — "The 37 Words that changed everything"
+  // Starts invisible, fades in after 90 seconds
+  r06FinalSp = mkSprite('The 37 Words\nthat changed everything', {
+    fontSize: 48, bright: 1.0, glow: true, italic: true
+  });
+  r06FinalSp.scale.multiplyScalar(1.6);
+  r06FinalSp.position.set(0, 2.5, -6.0);
+  r06FinalSp.material.opacity = 0;
+  r06FinalSp.material.color   = new THREE.Color(1.00, 1.00, 1.00);
+  r06Scene.add(r06FinalSp);
+
+  setTimeout(() => { r06FinalActive = true; }, 90000);
+
+  buildWall06();
+}
+
+function buildWall06() {
+  const WW = 9, WH = 6, WZ = -8, cy = 1.8;
+
+  r06DoorGlowMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0,
+    depthWrite: false, side: THREE.FrontSide,
+  });
+
+  const GT = 0.06, glowZ = WZ + 0.02;
+  [
+    [WW, GT,  0,        cy + WH / 2],
+    [WW, GT,  0,        cy - WH / 2],
+    [GT, WH, -WW / 2,   cy],
+    [GT, WH,  WW / 2,   cy],
+  ].forEach(([w, h, x, y]) => {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), r06DoorGlowMat);
+    mesh.position.set(x, y, glowZ);
+    r06Scene.add(mesh);
+  });
+
+  r06DoorGroup = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW + 0.6, WH + 0.6),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide })
+  );
+  r06DoorGroup.position.set(0, cy, WZ - 0.01);
+  r06Scene.add(r06DoorGroup);
+
+  r06DoorHitBox = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW, WH),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.FrontSide })
+  );
+  r06DoorHitBox.position.set(0, cy, WZ + 0.03);
+  r06Scene.add(r06DoorHitBox);
+
+  setTimeout(() => { r06WallGlowActive = true; }, 60000);
+}
+
+/* ═══════════════════════════════════════════
+   THE LEGACY — ENDING ROOM
+   Final destination. No back button. No door.
+═══════════════════════════════════════════ */
+
+// State
+const endMeshes      = [];
+const endItems       = [];
+let   endBuilt       = false;
+let   endVideoEl     = null;
+let   endVideoPanel  = null;   // shown after audio ends
+let   endFinalSp     = null;   // "She Got Next"
+let   endFinalActive = false;
+let   endT0          = null;
+
+// Spectrum colors — same as R06 for maximum energy
+const END_LAYERS = [
+  { idx:[0,6,11,13,18,26,34,35,36],    rMin:2.5, rMax:4.5,  fMin:44, fMax:58, oMin:0.85, oMax:1.00 },
+  { idx:[1,4,5,15,20,24,29,30,32,33],  rMin:5.5, rMax:8.5,  fMin:32, fMax:44, oMin:0.58, oMax:0.78 },
+  { idx:[3,7,8,9,14,16,17,22,27,28],   rMin:9.5, rMax:14,   fMin:24, fMax:32, oMin:0.30, oMax:0.48 },
+  { idx:[2,10,12,19,21,23,25,31],       rMin:15,  rMax:22,   fMin:16, fMax:24, oMin:0.12, oMax:0.24 },
+];
+
+function buildEnding() {
+  if (endBuilt) return;
+  endBuilt = true;
+
+  // ── Back wall
+  function addEndWall(imgEl) {
+    const tex = new THREE.Texture(imgEl);
+    tex.needsUpdate = true;
+    const mesh = mkColorMesh(tex, 14, 8);
+    mesh.position.set(0, 1.8, -8);
+    endScene.add(mesh);
+  }
+  const skyImg = document.getElementById('ending-sky');
+  if (skyImg.complete && skyImg.naturalWidth > 0) {
+    addEndWall(skyImg);
+  } else {
+    skyImg.onload  = () => addEndWall(skyImg);
+    skyImg.onerror = () => {};
+  }
+
+  // ── Video panel (hidden until audio ends)
+  const videoEl = document.createElement('video');
+  videoEl.setAttribute('src',         'ending-video.mp4');
+  videoEl.setAttribute('muted',       '');
+  videoEl.setAttribute('loop',        '');
+  videoEl.setAttribute('playsinline', '');
+  videoEl.muted       = true;
+  videoEl.loop        = true;
+  videoEl.playsInline = true;
+  videoEl.crossOrigin = 'anonymous';
+  videoEl.style.display = 'none';
+  document.body.appendChild(videoEl);
+  endVideoEl = videoEl;
+
+  const videoTex = new THREE.VideoTexture(videoEl);
+  videoTex.minFilter = THREE.LinearFilter;
+  videoTex.magFilter = THREE.LinearFilter;
+
+  // Panel starts invisible — fades in after audio ends
+  endVideoPanel = mkColorMesh(videoTex, 4, 3);
+  endVideoPanel.position.set(-5, 1.8, -7);
+  endVideoPanel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+  endVideoPanel.material.transparent = true;
+  endVideoPanel.material.opacity = 0;
+  endScene.add(endVideoPanel);
+  endMeshes.push(endVideoPanel);
+
+  const bezel = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.18, 3.18),
+    new THREE.MeshBasicMaterial({ color: 0x0a0a0a, side: THREE.FrontSide })
+  );
+  bezel.position.set(-5, 1.8, -7.01);
+  bezel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+  bezel.material.transparent = true;
+  bezel.material.opacity = 0;
+  endScene.add(bezel);
+  endMeshes.push(bezel);
+
+  // ── 37 words — full spectrum
+  END_LAYERS.forEach((layer, li) => {
+    layer.idx.forEach((wordIdx) => {
+      const bright = layer.oMin + Math.random() * (layer.oMax - layer.oMin);
+      const fSize  = layer.fMin + Math.floor(Math.random() * (layer.fMax - layer.fMin));
+      const sp     = mkSprite(WORDS[wordIdx], { fontSize: fSize, bright });
+      sp.material.color = R06_SPECTRUM[wordIdx % R06_SPECTRUM.length].clone();
+      if (li > 0) sp.material.color.multiplyScalar(1.0 - li * 0.18);
+      const bp = rndSphere(layer.rMin, layer.rMax);
+      sp.position.copy(bp);
+      endScene.add(sp);
+      endItems.push({
+        sp,
+        delay: 0.2 + li * 0.5 + Math.random() * 1.0,
+        tOp:   bright,
+        bp:    bp.clone(),
+        ph:    Math.random() * Math.PI * 2,
+        phY:   Math.random() * Math.PI * 2,
+        spd:   0.10 + Math.random() * 0.22,
+        amp:   layer.rMin * 0.022 + Math.random() * 0.10,
+      });
+    });
+  });
+
+  // ── Stat panels
+  const END_STATS = [
+    {
+      lines: [
+        { text: 'WNBA', size: 22, bold: true, color: '#ff6644' },
+        { text: '30th Anniversary', size: 18, bold: true, color: '#ffaa88' },
+        { text: '2026', size: 14, color: '#cc7755' },
+      ],
+      accent: '#ff6644',
+      pos: new THREE.Vector3(-7, 4.5, -10),
+    },
+    {
+      lines: [
+        { text: 'RAISING GOATs', size: 18, bold: true, color: '#33ff88' },
+        { text: 'since 1997', size: 22, bold: true, color: '#aaffcc' },
+      ],
+      accent: '#33ff88',
+      pos: new THREE.Vector3(7, 4.5, -10),
+    },
+    {
+      lines: [
+        { text: 'HOUSTON COMETS', size: 16, bold: true, color: '#ffdd33' },
+        { text: 'original champions', size: 13, color: '#ffee88' },
+        { text: 'are back', size: 18, bold: true, color: '#ffcc00' },
+      ],
+      accent: '#ffdd33',
+      pos: new THREE.Vector3(-5, 5.5, -12),
+    },
+    {
+      lines: [
+        { text: '54 YEARS', size: 24, bold: true, color: '#cc88ff' },
+        { text: 'of Title IX', size: 15, color: '#ddaaff' },
+        { text: '1972 — 2026', size: 12, color: '#aa66cc' },
+      ],
+      accent: '#cc88ff',
+      pos: new THREE.Vector3(5, 5.5, -12),
+    },
+    {
+      lines: [
+        { text: '$1 MILLION+', size: 22, bold: true, color: '#44aaff' },
+        { text: 'max WNBA contracts', size: 13, color: '#88ccff' },
+        { text: '2025 CBA — first time ever', size: 11, color: '#5588aa' },
+      ],
+      accent: '#44aaff',
+      pos: new THREE.Vector3(0, 6.0, -11),
+    },
+  ];
+
+  END_STATS.forEach((s, i) => {
+    const sp = mkStatPanel(s.lines, s.accent);
+    sp.position.copy(s.pos);
+    sp.material.opacity = 0;
+    endScene.add(sp);
+    endItems.push({
+      sp,
+      delay: 2.0 + i * 0.9,
+      tOp:   0.92,
+      bp:    s.pos.clone(),
+      ph:    i * 1.57,
+      phY:   i * 0.8,
+      spd:   0.07 + i * 0.015,
+      amp:   0.05,
+    });
+  });
+
+  // ── "She Got Next" — fades in at 90 seconds
+  endFinalSp = mkSprite('She Got Next', {
+    fontSize: 72, bright: 1.0, glow: true, italic: true
+  });
+  endFinalSp.scale.multiplyScalar(1.8);
+  endFinalSp.position.set(0, 2.5, -5.5);
+  endFinalSp.material.opacity = 0;
+  endFinalSp.material.color   = new THREE.Color(1.00, 1.00, 1.00);
+  endScene.add(endFinalSp);
+
+  setTimeout(() => { endFinalActive = true; }, 90000);
+}
+
+/* ═══════════════════════════════════════════
    ENTRY AUDIO
 ═══════════════════════════════════════════ */
 
@@ -1646,6 +2557,111 @@ function stopRoom04Audio() {
 }
 
 /* ═══════════════════════════════════════════
+   ROOM 05 AUDIO
+═══════════════════════════════════════════ */
+
+const r05Audio = document.getElementById('r05-audio');
+r05Audio.volume = 0.35;
+
+function playR05VideoWithSound() {
+  if (!r05VideoEl) return;
+  r05VideoEl.muted = false;
+  const p = r05VideoEl.play();
+  if (p !== undefined) {
+    p.catch(() => {
+      r05VideoEl.muted = true;
+      r05VideoEl.play().catch(() => {});
+    });
+  }
+}
+
+function startRoom05Audio() {
+  // Play 29-second ambient clip; video stays paused + muted
+  r05Audio.currentTime = 0;
+  r05Audio.play().catch(() => {});
+  // When clip ends, start video with full sound
+  r05Audio.onended = () => {
+    r05Audio.onended = null;
+    playR05VideoWithSound();
+  };
+}
+
+function stopRoom05Audio() {
+  r05Audio.onended = null;
+  r05Audio.pause();
+  r05Audio.currentTime = 0;
+  if (r05VideoEl) { r05VideoEl.pause(); r05VideoEl.muted = true; r05VideoEl.currentTime = 0; }
+}
+
+/* ═══════════════════════════════════════════
+   ROOM 06 AUDIO
+═══════════════════════════════════════════ */
+
+const r06Audio = document.getElementById('r06-audio');
+r06Audio.volume = 0.35;
+
+function playR06VideoWithSound() {
+  if (!r06VideoEl) return;
+  r06VideoEl.muted = false;
+  const p = r06VideoEl.play();
+  if (p !== undefined) {
+    p.catch(() => {
+      r06VideoEl.muted = true;
+      r06VideoEl.play().catch(() => {});
+    });
+  }
+}
+
+function startRoom06Audio() {
+  // Play 25-second ambient clip; video stays paused + muted
+  r06Audio.currentTime = 0;
+  r06Audio.play().catch(() => {});
+  r06Audio.onended = () => {
+    r06Audio.onended = null;
+    playR06VideoWithSound();
+  };
+}
+
+function stopRoom06Audio() {
+  r06Audio.onended = null;
+  r06Audio.pause();
+  r06Audio.currentTime = 0;
+  if (r06VideoEl) { r06VideoEl.pause(); r06VideoEl.muted = true; r06VideoEl.currentTime = 0; }
+}
+
+/* ═══════════════════════════════════════════
+   ENDING AUDIO
+═══════════════════════════════════════════ */
+
+const endingAudio = document.getElementById('ending-audio');
+endingAudio.volume = 0.38;
+
+function startEndingAudio() {
+  endingAudio.currentTime = 0;
+  endingAudio.play().catch(() => {});
+  // When audio ends, unmute and start video
+  endingAudio.onended = () => {
+    endingAudio.onended = null;
+    if (!endVideoEl) return;
+    endVideoEl.muted = false;
+    const p = endVideoEl.play();
+    if (p !== undefined) {
+      p.catch(() => {
+        endVideoEl.muted = true;
+        endVideoEl.play().catch(() => {});
+      });
+    }
+  };
+}
+
+function stopEndingAudio() {
+  endingAudio.onended = null;
+  endingAudio.pause();
+  endingAudio.currentTime = 0;
+  if (endVideoEl) { endVideoEl.pause(); endVideoEl.muted = true; endVideoEl.currentTime = 0; }
+}
+
+/* ═══════════════════════════════════════════
    VOID WORD SCHEDULE
    Called once when user enters the void.
    Activates each word/clause via setTimeout
@@ -1676,6 +2692,13 @@ function startVoidSequence() {
     const ms = AUDIO_START_MS + lastWordIdx * WORD_INTERVAL_MS + 300;
     setTimeout(() => { voidItems[37 + ci].active = true; }, ms);
   });
+
+  // After entry audio ends: build and reveal smoke, path, and door
+  entryAudio.onended = () => {
+    entryAudio.onended = null;
+    buildVoidDoor();
+    voidDoorActive = true;
+  };
 }
 
 /* ═══════════════════════════════════════════
@@ -1698,6 +2721,12 @@ function handleHover(cx, cy) {
     }
   }
 
+  if (activeScene === voidScene && voidDoorHitBox && voidDoorActive) {
+    const hits = raycaster.intersectObject(voidDoorHitBox);
+    const hit  = hits.length > 0;
+    if (hit !== isHoveringDoor) { isHoveringDoor = hit; cvs.classList.toggle('hovering', hit); }
+  }
+
   if (activeScene === r01Scene && r01DoorHitBox) {
     const hits = raycaster.intersectObject(r01DoorHitBox);
     const hit  = hits.length > 0;
@@ -1721,6 +2750,18 @@ function handleHover(cx, cy) {
     const hit  = hits.length > 0;
     if (hit !== isHoveringDoor) { isHoveringDoor = hit; cvs.classList.toggle('hovering', hit); }
   }
+
+  if (activeScene === r05Scene && r05DoorHitBox) {
+    const hits = raycaster.intersectObject(r05DoorHitBox);
+    const hit  = hits.length > 0;
+    if (hit !== isHoveringDoor) { isHoveringDoor = hit; cvs.classList.toggle('hovering', hit); }
+  }
+
+  if (activeScene === r06Scene && r06DoorHitBox) {
+    const hits = raycaster.intersectObject(r06DoorHitBox);
+    const hit  = hits.length > 0;
+    if (hit !== isHoveringDoor) { isHoveringDoor = hit; cvs.classList.toggle('hovering', hit); }
+  }
 }
 
 function handleClick(cx, cy) {
@@ -1728,6 +2769,11 @@ function handleClick(cx, cy) {
 
   if (activeScene === voidScene && clickableSp && clickableSp.material.opacity > 0.1) {
     const hits = raycaster.intersectObject(clickableSp);
+    if (hits.length > 0) { enterRoom01(); return; }
+  }
+
+  if (activeScene === voidScene && voidDoorHitBox && voidDoorActive) {
+    const hits = raycaster.intersectObject(voidDoorHitBox);
     if (hits.length > 0) { enterRoom01(); return; }
   }
 
@@ -1748,7 +2794,17 @@ function handleClick(cx, cy) {
 
   if (activeScene === r04Scene && r04DoorHitBox) {
     const hits = raycaster.intersectObject(r04DoorHitBox);
-    if (hits.length > 0) enterRoom05();
+    if (hits.length > 0) { enterRoom05(); return; }
+  }
+
+  if (activeScene === r05Scene && r05DoorHitBox) {
+    const hits = raycaster.intersectObject(r05DoorHitBox);
+    if (hits.length > 0) { enterRoom06(); return; }
+  }
+
+  if (activeScene === r06Scene && r06DoorHitBox) {
+    const hits = raycaster.intersectObject(r06DoorHitBox);
+    if (hits.length > 0) enterEnding();
   }
 }
 
@@ -1924,9 +2980,6 @@ function enterRoom03() {
     document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 02';
     document.getElementById('back-btn').style.display = 'block';
 
-    // Fade in warm amber overlay
-    document.getElementById('warmth').style.opacity = '1';
-
     const hint = document.getElementById('hint');
     hint.style.opacity = '1';
     setTimeout(() => { hint.style.opacity = '0'; }, 5500);
@@ -1944,9 +2997,6 @@ function returnToRoom02() {
   stopRoom03Audio();
   isHoveringDoor = false;
   cvs.classList.remove('hovering');
-
-  // Fade out warm amber overlay
-  document.getElementById('warmth').style.opacity = '0';
 
   const veil = document.getElementById('veil');
   veil.classList.add('white');
@@ -2013,7 +3063,6 @@ function enterRoom04() {
     document.getElementById('back-btn').style.display = 'block';
 
     // No colour overlay in Room 04 — image shows natural
-    document.getElementById('warmth').style.opacity = '0';
 
     const hint = document.getElementById('hint');
     hint.style.opacity = '1';
@@ -2032,9 +3081,6 @@ function returnToRoom03() {
   stopRoom04Audio();
   isHoveringDoor = false;
   cvs.classList.remove('hovering');
-
-  // Restore Room 03 amber tint
-  document.getElementById('warmth').style.opacity = '1';
 
   const veil = document.getElementById('veil');
   veil.classList.add('white');
@@ -2073,14 +3119,212 @@ function enterRoom05() {
   isHoveringDoor = false;
   cvs.classList.remove('hovering');
   stopRoom04Audio();
-  // Room 05 not yet built — white flash placeholder
+
   const veil = document.getElementById('veil');
   veil.classList.add('white');
   veil.classList.add('on');
+
   setTimeout(() => {
-    veil.classList.remove('on');
-    setTimeout(() => veil.classList.remove('white'), 700);
-  }, 1500);
+    buildRoom05();
+
+    for (const mesh of r05Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r05HeroSp) r05HeroSp.material.opacity = 0;
+    for (const d of r05Items) d.sp.material.opacity = 0;
+    isHoveringDoor    = false;
+    r05WallGlowActive = false;
+
+    activeScene = r05Scene;
+    r05T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 04';
+    document.getElementById('back-btn').style.display = 'block';
+
+    // No colour overlay in Room 05
+
+    const hint = document.getElementById('hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 5500);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom05Audio, 500);
+  }, 650);
+}
+
+function returnToRoom04() {
+  stopRoom05Audio();
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    for (const mesh of r04Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r04HeroSp) r04HeroSp.material.opacity = 0;
+    for (const d of r04Items) d.sp.material.opacity = 0;
+    isHoveringDoor    = false;
+    r04WallGlowActive = false;
+
+    activeScene = r04Scene;
+    r04T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 03';
+    document.getElementById('back-btn').style.display = 'block';
+
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom04Audio, 500);
+  }, 650);
+}
+
+function enterRoom06() {
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+  stopRoom05Audio();
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    buildRoom06();
+
+    for (const mesh of r06Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r06HeroSp) r06HeroSp.material.opacity = 0;
+    if (r06FinalSp) r06FinalSp.material.opacity = 0;
+    for (const d of r06Items) d.sp.material.opacity = 0;
+    r06FinalActive = false;
+
+    activeScene = r06Scene;
+    r06T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 05';
+    document.getElementById('back-btn').style.display = 'block';
+
+    const hint = document.getElementById('hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 5500);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom06Audio, 500);
+  }, 650);
+}
+
+function returnToRoom05() {
+  stopRoom06Audio();
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    for (const mesh of r05Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r05HeroSp) r05HeroSp.material.opacity = 0;
+    for (const d of r05Items) d.sp.material.opacity = 0;
+    isHoveringDoor    = false;
+    r05WallGlowActive = false;
+
+    activeScene = r05Scene;
+    r05T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 04';
+    document.getElementById('back-btn').style.display = 'block';
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom05Audio, 500);
+  }, 650);
+}
+
+function enterEnding() {
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+  stopRoom06Audio();
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    buildEnding();
+
+    for (const mesh of endMeshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+      // Hide video panel and bezel until audio ends
+      if (mesh.material && mesh.material.transparent) mesh.material.opacity = 0;
+    }
+    for (const d of endItems) d.sp.material.opacity = 0;
+    if (endFinalSp) endFinalSp.material.opacity = 0;
+    endFinalActive = false;
+
+    activeScene = endScene;
+    endT0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    // No back button — final room
+    document.getElementById('back-btn').style.display = 'none';
+
+    const hint = document.getElementById('hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 5500);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startEndingAudio, 500);
+  }, 650);
 }
 
 function returnToVoid() {
@@ -2133,6 +3377,28 @@ let voidT0     = null;
     if (clickableSp && clickableSp.material.opacity > 0.05) {
       const baseOp = VOID_CLAUSES[0].bright;
       clickableSp.material.opacity = baseOp * (0.78 + 0.22 * Math.sin(ts * 0.0015));
+    }
+
+    // Smoke planes — fade in and drift upward after voidDoorActive
+    if (voidDoorActive) {
+      const tsec = ts * 0.001;
+
+      // Lit path strips — pulse gently
+      for (let i = 0; i < voidPathPlanes.length; i++) {
+        const m = voidPathPlanes[i];
+        if (m.material.opacity < m.userData.tOp) {
+          m.material.opacity = Math.min(m.userData.tOp, m.material.opacity + 0.006);
+        } else {
+          m.material.opacity = m.userData.tOp * (0.7 + 0.3 * Math.sin(tsec * 1.4 + m.userData.ph));
+        }
+      }
+
+      // Door pulse — subtle breathe to indicate interactivity
+      if (voidDoorMesh && voidDoorMesh.material) {
+        const base  = isHoveringDoor ? 1.00 : 0.82;
+        const range = isHoveringDoor ? 0.00 : 0.18;
+        voidDoorMesh.material.opacity = base + range * Math.sin(tsec * 1.2);
+      }
     }
   }
 
@@ -2344,7 +3610,7 @@ let voidT0     = null;
       }
     }
 
-    // Gold wall edge glow — richer pulse frequency for breakthrough feel
+    // Wall edge glow
     if (r04DoorGlowMat) {
       if (r04WallGlowActive || isHoveringDoor) {
         const base  = isHoveringDoor ? 0.75 : 0.35;
@@ -2361,6 +3627,168 @@ let voidT0     = null;
     }
   }
 
+  // ── ROOM 05 scene updates
+  if (activeScene === r05Scene) {
+    if (r05T0 === null) r05T0 = ts;
+    const t = (ts - r05T0) * 0.001;
+
+    // Hero clause — cool blue fade-in then steady institutional pulse
+    if (r05HeroSp) {
+      const heroCurrent = r05HeroSp.material.opacity;
+      if (heroCurrent < 0.98) {
+        r05HeroSp.material.opacity = Math.min(0.98, heroCurrent + 0.005);
+      } else {
+        r05HeroSp.material.opacity = 0.84 + 0.14 * (0.5 + 0.5 * Math.sin(t * 0.85));
+      }
+      r05HeroSp.position.y = 3.5 + Math.sin(t * 0.20) * 0.08;
+    }
+
+    // Word sprites
+    for (const d of r05Items) {
+      const mat = d.sp.material;
+      if (t > d.delay && mat.opacity < d.tOp) {
+        mat.opacity = Math.min(d.tOp, mat.opacity + 0.006);
+      }
+      if (mat.opacity > 0.001) {
+        const s = t * d.spd;
+        d.sp.position.x = d.bp.x + Math.sin(s        + d.ph)  * d.amp;
+        d.sp.position.y = d.bp.y + Math.cos(s * 0.63  + d.phY) * d.amp * 0.75;
+        d.sp.position.z = d.bp.z + Math.sin(s * 0.47  + d.ph + 1.8) * d.amp * 0.55;
+      }
+    }
+
+    // Panel bob + sway
+    for (const mesh of r05Meshes) {
+      const ud = mesh.userData;
+      if (ud.initialY !== undefined) {
+        mesh.position.y = ud.initialY + Math.sin(t * 0.38 + ud.bobPhase) * ud.bobAmp;
+        mesh.rotation.y = ud.baseRotY  + Math.sin(t * 0.25 + ud.rotPhase) * 0.04;
+      }
+    }
+
+    // Cool blue wall edge glow
+    if (r05DoorGlowMat) {
+      if (r05WallGlowActive || isHoveringDoor) {
+        const base  = isHoveringDoor ? 0.70 : 0.30;
+        const range = isHoveringDoor ? 0.25 : 0.22;
+        const glow  = base + range * Math.sin(t * 1.6);
+        r05DoorGlowMat.opacity = glow;
+        if (r05DoorGroup && r05DoorGroup.material) {
+          r05DoorGroup.material.opacity = glow * 0.12;
+        }
+      } else {
+        r05DoorGlowMat.opacity = 0;
+        if (r05DoorGroup && r05DoorGroup.material) r05DoorGroup.material.opacity = 0;
+      }
+    }
+  }
+
+  // ── ROOM 06 scene updates
+  if (activeScene === r06Scene) {
+    if (r06T0 === null) r06T0 = ts;
+    const t = (ts - r06T0) * 0.001;
+
+    // Hero clause — vibrant green fade-in then energetic pulse
+    if (r06HeroSp) {
+      const cur = r06HeroSp.material.opacity;
+      if (cur < 0.98) {
+        r06HeroSp.material.opacity = Math.min(0.98, cur + 0.007);
+      } else {
+        r06HeroSp.material.opacity = 0.80 + 0.18 * (0.5 + 0.5 * Math.sin(t * 1.2));
+      }
+      r06HeroSp.position.y = 3.5 + Math.sin(t * 0.24) * 0.09;
+    }
+
+    // Word + stat sprites
+    for (const d of r06Items) {
+      const mat = d.sp.material;
+      if (t > d.delay && mat.opacity < d.tOp) {
+        mat.opacity = Math.min(d.tOp, mat.opacity + 0.007);
+      }
+      if (mat.opacity > 0.001) {
+        const s = t * d.spd;
+        d.sp.position.x = d.bp.x + Math.sin(s        + d.ph)  * d.amp;
+        d.sp.position.y = d.bp.y + Math.cos(s * 0.63  + d.phY) * d.amp * 0.75;
+        d.sp.position.z = d.bp.z + Math.sin(s * 0.47  + d.ph + 1.8) * d.amp * 0.55;
+      }
+    }
+
+    // Panel bob + sway
+    for (const mesh of r06Meshes) {
+      const ud = mesh.userData;
+      if (ud.initialY !== undefined) {
+        mesh.position.y = ud.initialY + Math.sin(t * 0.38 + ud.bobPhase) * ud.bobAmp;
+        mesh.rotation.y = ud.baseRotY  + Math.sin(t * 0.25 + ud.rotPhase) * 0.04;
+      }
+    }
+
+    // Door glow
+    if (r06DoorGlowMat) {
+      if (r06WallGlowActive || isHoveringDoor) {
+        const base  = isHoveringDoor ? 0.70 : 0.30;
+        const range = isHoveringDoor ? 0.25 : 0.22;
+        const glow  = base + range * Math.sin(t * 1.6);
+        r06DoorGlowMat.opacity = glow;
+        if (r06DoorGroup && r06DoorGroup.material) r06DoorGroup.material.opacity = glow * 0.12;
+      } else {
+        r06DoorGlowMat.opacity = 0;
+        if (r06DoorGroup && r06DoorGroup.material) r06DoorGroup.material.opacity = 0;
+      }
+    }
+
+    // Final text — fade in after 90s, gentle pulse once visible
+    if (r06FinalSp) {
+      if (r06FinalActive && r06FinalSp.material.opacity < 0.96) {
+        r06FinalSp.material.opacity = Math.min(0.96, r06FinalSp.material.opacity + 0.004);
+      } else if (r06FinalSp.material.opacity >= 0.96) {
+        r06FinalSp.material.opacity = 0.84 + 0.12 * (0.5 + 0.5 * Math.sin(t * 0.7));
+      }
+      r06FinalSp.position.y = 2.5 + Math.sin(t * 0.18) * 0.06;
+    }
+  }
+
+  // ── ENDING ROOM (The Legacy)
+  if (activeScene === endScene) {
+    if (endT0 === null) endT0 = ts;
+    const t = (endT0 === ts ? 0 : (ts - endT0) * 0.001);
+
+    // Word + stat sprites fade in
+    for (const d of endItems) {
+      const mat = d.sp.material;
+      if (t > d.delay && mat.opacity < d.tOp) {
+        mat.opacity = Math.min(d.tOp, mat.opacity + 0.007);
+      }
+      if (mat.opacity > 0.001) {
+        const s = t * d.spd;
+        d.sp.position.x = d.bp.x + Math.sin(s        + d.ph)  * d.amp;
+        d.sp.position.y = d.bp.y + Math.cos(s * 0.63  + d.phY) * d.amp * 0.75;
+        d.sp.position.z = d.bp.z + Math.sin(s * 0.47  + d.ph + 1.8) * d.amp * 0.55;
+      }
+    }
+
+    // Video panel — fade in after audio ends (video starts playing)
+    for (const mesh of endMeshes) {
+      if (!mesh.material || !mesh.material.transparent) continue;
+      const ud = mesh.userData;
+      if (endVideoEl && !endVideoEl.paused && mesh.material.opacity < 0.98) {
+        mesh.material.opacity = Math.min(0.98, mesh.material.opacity + 0.012);
+      }
+      if (ud.initialY !== undefined && mesh.material.opacity > 0.01) {
+        mesh.position.y = ud.initialY + Math.sin(t * 0.32 + ud.bobPhase) * ud.bobAmp;
+      }
+    }
+
+    // "She Got Next" — fade in at 90s, big slow pulse
+    if (endFinalSp) {
+      if (endFinalActive && endFinalSp.material.opacity < 0.98) {
+        endFinalSp.material.opacity = Math.min(0.98, endFinalSp.material.opacity + 0.003);
+      } else if (endFinalSp.material.opacity >= 0.98) {
+        endFinalSp.material.opacity = 0.80 + 0.18 * (0.5 + 0.5 * Math.sin(t * 0.6));
+      }
+      endFinalSp.position.y = 2.5 + Math.sin(t * 0.15) * 0.10;
+    }
+  }
+
   renderer.render(activeScene, camera);
 })(0);
 
@@ -2369,8 +3797,29 @@ let voidT0     = null;
    ENTER SEQUENCE
 ═══════════════════════════════════════════ */
 
+// ── Staggered landing text fade-in on page load
+(function initLanding() {
+  // Ensure video plays (some browsers need a small delay)
+  const lv = document.getElementById('landing-video');
+  if (lv) { lv.muted = true; lv.play().catch(() => {}); }
+
+  setTimeout(() => {
+    document.getElementById('landing-title').style.opacity = '1';
+  }, 400);
+  setTimeout(() => {
+    document.getElementById('landing-subtitle').style.opacity = '1';
+  }, 1500);
+  setTimeout(() => {
+    document.getElementById('landing-tagline').style.opacity = '1';
+  }, 2600);
+  setTimeout(() => {
+    document.getElementById('enter-btn').style.opacity = '1';
+  }, 3800);
+})();
+
 document.getElementById('enter-btn').addEventListener('click', () => {
   document.getElementById('landing').classList.add('out');
+  renderer.domElement.style.display = 'block';
 
   voidActive = true;
   idleRotate = true;
@@ -2388,7 +3837,9 @@ document.getElementById('enter-btn').addEventListener('click', () => {
 });
 
 document.getElementById('back-btn').addEventListener('click', () => {
-  if      (activeScene === r04Scene) returnToRoom03();
+  if      (activeScene === r06Scene) returnToRoom05();
+  else if (activeScene === r05Scene) returnToRoom04();
+  else if (activeScene === r04Scene) returnToRoom03();
   else if (activeScene === r03Scene) returnToRoom02();
   else if (activeScene === r02Scene) returnToRoom01();
   else returnToVoid();
