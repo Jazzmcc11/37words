@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Room 01 — The Promise</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    /* ── Landing ─────────────────────────────────── */
+
+    #landing {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 52px; background: #000; z-index: 100;
+      transition: opacity 2.8s ease;
+    }
+    #landing.out { opacity: 0; pointer-events: none; }
+
+    .eyebrow {
+      font-size: 10px; letter-spacing: .48em;
+      text-transform: uppercase; color: rgba(255,255,255,.20);
+    }
+
+    #enter-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.28);
+      color: rgba(255,255,255,.72);
+      font-family: Georgia, serif; font-size: 12px;
+      letter-spacing: .32em; text-transform: uppercase;
+      padding: 15px 56px; cursor: pointer;
+      transition: border-color .4s ease, color .4s ease;
+      outline: none;
+    }
+    #enter-btn:hover { border-color: rgba(255,255,255,.78); color: #fff; }
+
+    /* ── Black transition overlay ─────────────────── */
+
+    #veil {
+      position: fixed; inset: 0;
+      background: #000; z-index: 300;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.65s ease;
+    }
+    #veil.on       { opacity: 1; pointer-events: all; }
+    #veil.white    { background: #fff; }
+
+    /* ── Back button (Room 01 only) ───────────────── */
+
+    #back-btn {
+      position: fixed; top: 24px; left: 24px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.22);
+      color: rgba(255,255,255,.55);
+      font-family: Georgia, serif; font-size: 10px;
+      letter-spacing: .28em; text-transform: uppercase;
+      padding: 9px 22px; cursor: pointer; z-index: 50;
+      display: none;
+      transition: border-color .35s, color .35s;
+      outline: none;
+    }
+    #back-btn:hover { border-color: rgba(255,255,255,.7); color: #fff; }
+
+    /* ── Tooltip (hover over clickable clause) ────── */
+
+    #clause-tip {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, calc(-50% + 3.8rem));
+      font-size: 9px; letter-spacing: .32em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.38);
+      opacity: 0; pointer-events: none; z-index: 50;
+      transition: opacity .3s ease;
+    }
+
+    /* ── HUD ──────────────────────────────────────── */
+
+    #hud {
+      position: fixed; bottom: 26px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 7px;
+      z-index: 10; pointer-events: none; user-select: none;
+    }
+
+    #hint {
+      font-size: 9px; letter-spacing: .32em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.18);
+      opacity: 0; transition: opacity 1.8s ease;
+    }
+
+    #room-tag {
+      font-size: 9px; letter-spacing: .44em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.12);
+      opacity: 0; transition: opacity 2s ease 1.2s;
+    }
+
+    canvas { display: block; cursor: grab; }
+    canvas.dragging { cursor: grabbing; }
+    canvas.hovering { cursor: pointer; }
+
+    /* ── Warm amber overlay — fades in for Room 03 onward ── */
+    #warmth {
+      position: fixed; inset: 0;
+      background: rgba(255, 160, 50, 0.09);
+      pointer-events: none; z-index: 5;
+      opacity: 0; transition: opacity 2.5s ease;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Preloaded assets for Room 01 -->
+<img id="r01sky"   src="room01-wall.png"     style="display:none" crossorigin="anonymous">
+<img id="r01paper" src="room01-paper1.jpeg"  style="display:none" crossorigin="anonymous">
+
+<!-- Preloaded assets for Room 02 -->
+<img id="r02sky"   src="room02-wall.png"     style="display:none" crossorigin="anonymous">
+<img id="r02paper" src="room02-paper1.jpg"   style="display:none" crossorigin="anonymous">
+
+<!-- Preloaded assets for Room 03 -->
+<img id="r03sky"   src="room03-wall.png"     style="display:none" crossorigin="anonymous">
+<img id="r03paper" src="room03-paper1.jpg"   style="display:none" crossorigin="anonymous">
+
+<!-- Audio -->
+<audio id="entry-audio" src="entry.mp3"              preload="auto"></audio>
+<audio id="r01-audio"   src="room01-audio-trim.mp3"  preload="auto"></audio>
+<audio id="r02-audio"   src="room02-audio-trim.mp3"  preload="auto"></audio>
+<audio id="r03-audio"   src="room03-audio-trim.mp3"  preload="auto"></audio>
+
+<div id="landing">
+  <span class="eyebrow">The Void</span>
+  <button id="enter-btn">Enter the Space</button>
+</div>
+
+<div id="veil"></div>
+<div id="warmth"></div>
+<button id="back-btn">&#8592;&nbsp; The Void</button>
+<div id="clause-tip">Enter Room 01 — The Promise</div>
+
+<div id="hud">
+  <div id="hint">Drag to look around</div>
+  <div id="room-tag">Title IX &nbsp;·&nbsp; 1972</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* ═══════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════ */
+
+const WORDS = [
+  'No','person','in','the','United','States','shall',      // 0-6
+  'on','the','basis','of','sex',                            // 7-11
+  'be','excluded','from','participation','in',              // 12-16
+  'be','denied','the','benefits','of',                      // 17-21
+  'or','be','subjected','to','discrimination',              // 22-26
+  'under','any','education','program','or','activity',      // 27-32
+  'receiving','Federal','financial','assistance'            // 33-36
+];
+
+// Void clauses — first entry is the special clickable portal to Room 01
+const VOID_CLAUSES = [
+  { text:'No person in the United States\nshall', bright:1.00, mul:1.85, clickable:true },
+  { text:'on the basis of sex',                   bright:1.00, mul:1.72 },
+  { text:'be excluded\nfrom participation in',    bright:0.91, mul:1.42 },
+  { text:'be denied\nthe benefits of',            bright:0.91, mul:1.42 },
+  { text:'or be subjected to discrimination\nunder any education program or\nactivity receiving Federal\nfinancial assistance', bright:0.86, mul:1.15 },
+];
+
+// Room 01 — 4 depth layers, semantically assigned
+const R01_LAYERS = [
+  { idx:[0,6,11,13,18,26,34,35,36],    rMin:2.5, rMax:4.5,  fMin:42, fMax:54, oMin:0.78, oMax:0.96 },
+  { idx:[1,4,5,15,20,24,29,30,32,33],  rMin:5.5, rMax:8.5,  fMin:30, fMax:40, oMin:0.48, oMax:0.68 },
+  { idx:[3,7,8,9,14,16,17,22,27,28],   rMin:9.5, rMax:14,   fMin:22, fMax:30, oMin:0.24, oMax:0.40 },
+  { idx:[2,10,12,19,21,23,25,31],       rMin:15,  rMax:22,   fMin:14, fMax:22, oMin:0.07, oMax:0.19 },
+];
+
+// Room 03 — slightly warmer/brighter than R02, hopeful opening
+const R03_LAYERS = [
+  { idx:[0,6,11,13,18,26,34,35,36],    rMin:2.5, rMax:4.5,  fMin:42, fMax:54, oMin:0.70, oMax:0.90 },
+  { idx:[1,4,5,15,20,24,29,30,32,33],  rMin:5.5, rMax:8.5,  fMin:30, fMax:40, oMin:0.42, oMax:0.60 },
+  { idx:[3,7,8,9,14,16,17,22,27,28],   rMin:9.5, rMax:14,   fMin:22, fMax:30, oMin:0.20, oMax:0.34 },
+  { idx:[2,10,12,19,21,23,25,31],       rMin:15,  rMax:22,   fMin:14, fMax:22, oMin:0.06, oMax:0.16 },
+];
+
+// Room 02 — same word distribution, slightly darker to feel more urgent
+const R02_LAYERS = [
+  { idx:[0,6,11,13,18,26,34,35,36],    rMin:2.5, rMax:4.5,  fMin:40, fMax:52, oMin:0.62, oMax:0.84 },
+  { idx:[1,4,5,15,20,24,29,30,32,33],  rMin:5.5, rMax:8.5,  fMin:28, fMax:38, oMin:0.36, oMax:0.54 },
+  { idx:[3,7,8,9,14,16,17,22,27,28],   rMin:9.5, rMax:14,   fMin:20, fMax:28, oMin:0.16, oMax:0.28 },
+  { idx:[2,10,12,19,21,23,25,31],       rMin:15,  rMax:22,   fMin:12, fMax:20, oMin:0.05, oMax:0.14 },
+];
+
+
+/* ═══════════════════════════════════════════
+   THREE.JS CORE
+═══════════════════════════════════════════ */
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Two scenes
+const voidScene = new THREE.Scene();
+voidScene.background = new THREE.Color(0x000000);
+voidScene.fog = new THREE.FogExp2(0x000000, 0.037);
+
+const r01Scene = new THREE.Scene();
+r01Scene.background = new THREE.Color(0x000000);
+
+const r02Scene = new THREE.Scene();
+r02Scene.background = new THREE.Color(0x000000);
+
+const r03Scene = new THREE.Scene();
+r03Scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+
+let activeScene = voidScene;
+
+/* ═══════════════════════════════════════════
+   LOOK CONTROLS
+═══════════════════════════════════════════ */
+
+let yaw = 0, pitch = 0, tYaw = 0, tPitch = 0;
+let dragging = false, lx = 0, ly = 0, idleRotate = true;
+let dragMovedPx = 0, mouseDownX = 0, mouseDownY = 0;
+const cvs = renderer.domElement;
+
+function startDrag(x, y) {
+  dragging = true; idleRotate = false;
+  lx = x; ly = y;
+  mouseDownX = x; mouseDownY = y;
+  dragMovedPx = 0;
+  cvs.classList.add('dragging');
+}
+function moveDrag(x, y) {
+  if (!dragging) return;
+  const dx = x - lx, dy = y - ly;
+  tYaw   -= dx * 0.0032;
+  tPitch -= dy * 0.0032;
+  tPitch  = Math.max(-1.35, Math.min(1.35, tPitch));
+  lx = x; ly = y;
+  dragMovedPx += Math.sqrt(dx*dx + dy*dy);
+}
+function endDrag(x, y) {
+  dragging = false;
+  cvs.classList.remove('dragging');
+  // If barely moved, treat as a click
+  if (dragMovedPx < 6) handleClick(x, y);
+}
+
+cvs.addEventListener('mousedown',  e => startDrag(e.clientX, e.clientY));
+window.addEventListener('mousemove', e => {
+  moveDrag(e.clientX, e.clientY);
+  if (!dragging) handleHover(e.clientX, e.clientY);
+});
+window.addEventListener('mouseup', e => endDrag(e.clientX, e.clientY));
+cvs.addEventListener('touchstart', e => {
+  const t = e.touches[0]; startDrag(t.clientX, t.clientY);
+}, { passive: true });
+window.addEventListener('touchmove', e => {
+  const t = e.touches[0]; moveDrag(t.clientX, t.clientY);
+}, { passive: true });
+window.addEventListener('touchend', e => {
+  const t = e.changedTouches[0]; endDrag(t.clientX, t.clientY);
+});
+
+/* ═══════════════════════════════════════════
+   SPRITE FACTORY
+═══════════════════════════════════════════ */
+
+const DPR  = Math.min(window.devicePixelRatio, 2);
+const KSCL = 1 / (DPR * 245);
+
+function mkSprite(text, { fontSize = 42, bright = 0.75, italic = false, glow = false } = {}) {
+  const fs    = fontSize * DPR;
+  const font  = `${italic ? 'italic ' : ''}${fs}px Georgia, serif`;
+  const lh    = fs * 1.38;
+  const glowPad = glow ? fs * 0.65 : 0;
+  const px    = fs * 0.36 + glowPad;
+  const py    = fs * 0.28 + glowPad;
+  const lines = text.split('\n');
+
+  const probe = document.createElement('canvas').getContext('2d');
+  probe.font  = font;
+  let maxW    = 0;
+  for (const l of lines) { const w = probe.measureText(l).width; if (w > maxW) maxW = w; }
+
+  const cw = Math.ceil(maxW + px * 2);
+  const ch = Math.ceil(lh * lines.length + py * 2);
+  const cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  const ctx = cv.getContext('2d');
+  ctx.font  = font;
+
+  const g = Math.round(bright * 255);
+  ctx.fillStyle    = `rgb(${g},${g},${g})`;
+  ctx.textBaseline = 'top';
+
+  // Glow: multi-pass shadow rendering
+  if (glow) {
+    ctx.shadowColor = `rgb(${g},${g},${g})`;
+    ctx.shadowBlur  = fs * 0.55;
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < lines.length; i++) {
+        const lw = ctx.measureText(lines[i]).width;
+        ctx.fillText(lines[i], (cw - lw) * 0.5, py + i * lh);
+      }
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  // Crisp final pass
+  for (let i = 0; i < lines.length; i++) {
+    const lw = ctx.measureText(lines[i]).width;
+    ctx.fillText(lines[i], (cw - lw) * 0.5, py + i * lh);
+  }
+
+  const tex = new THREE.CanvasTexture(cv);
+  const mat = new THREE.SpriteMaterial({
+    map: tex, transparent: true, opacity: 0, depthWrite: false
+  });
+  const sp = new THREE.Sprite(mat);
+  sp.scale.set(cw * KSCL, ch * KSCL, 1);
+  return sp;
+}
+
+/* ═══════════════════════════════════════════
+   GRAYSCALE PLANE FACTORY
+   Shared ShaderMaterial for both panels so
+   colours are always stripped to greyscale.
+═══════════════════════════════════════════ */
+
+const GREY_VERT = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const GREY_FRAG = `
+  uniform sampler2D uTex;
+  uniform float uBright;
+  varying vec2 vUv;
+  void main() {
+    vec4 c = texture2D(uTex, vUv);
+    float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)) * uBright;
+    gl_FragColor = vec4(g, g, g, c.a);
+  }
+`;
+
+function mkGreyMesh(tex, w, h, bright) {
+  const geo = new THREE.PlaneGeometry(w, h);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTex: { value: tex }, uBright: { value: bright } },
+    vertexShader: GREY_VERT,
+    fragmentShader: GREY_FRAG,
+    side: THREE.FrontSide,
+  });
+  return new THREE.Mesh(geo, mat);
+}
+
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+
+function rndSphere(r0, r1) {
+  const r = r0 + Math.random() * (r1 - r0);
+  const u = Math.random() * Math.PI * 2;
+  const v = Math.acos(2 * Math.random() - 1);
+  return new THREE.Vector3(
+    r * Math.sin(v) * Math.cos(u),
+    r * Math.sin(v) * Math.sin(u),
+    r * Math.cos(v)
+  );
+}
+
+// Void-specific: words appear in a volume in front of the user
+function rndVoidPos() {
+  return new THREE.Vector3(
+    -8 + Math.random() * 16,     // x: -8 to 8
+    0.5 + Math.random() * 3.5,   // y: 0.5 to 4
+    -(5 + Math.random() * 20)    // z: -5 to -25
+  );
+}
+
+function ndcFromEvent(cx, cy) {
+  return new THREE.Vector2(
+    (cx / window.innerWidth)  *  2 - 1,
+    (cy / window.innerHeight) * -2 + 1
+  );
+}
+
+/* ═══════════════════════════════════════════
+   VOID SCENE
+═══════════════════════════════════════════ */
+
+// voidItems: { sp, tOp, bp, ph, phY, spd, amp, active }
+// active is set true by setTimeout in startVoidSequence()
+const voidItems   = [];
+let   clickableSp = null;
+const raycaster   = new THREE.Raycaster();
+
+// ── 37 individual words
+// Pre-created at opacity 0; activated via setTimeout on enter
+WORDS.forEach((word) => {
+  const bright = 0.72 + Math.random() * 0.25;
+  const fSize  = 48 + Math.floor(Math.random() * 20);
+  const sp     = mkSprite(word, { fontSize: fSize, bright });
+  const bp     = rndVoidPos();
+  sp.position.copy(bp);
+  voidScene.add(sp);
+  voidItems.push({
+    sp,
+    tOp: 0.70 + Math.random() * 0.28,
+    bp:  bp.clone(),
+    ph:  Math.random() * Math.PI * 2,
+    phY: Math.random() * Math.PI * 2,
+    spd: 0.12 + Math.random() * 0.18,
+    amp: 0.10 + Math.random() * 0.22,
+    active: false,
+  });
+});
+
+// ── 5 clause phrases (index into voidItems: 37..41)
+// Clause 0 is the clickable portal to Room 01 — width 7.5 world units
+// Others normalized to width 5 world units
+VOID_CLAUSES.forEach((c) => {
+  const sp = mkSprite(c.text, {
+    fontSize: 52, bright: c.bright, italic: !c.clickable,
+    glow: true
+  });
+  const bp = rndVoidPos();
+  sp.position.copy(bp);
+
+  // Normalize world-space width
+  const targetW = c.clickable ? 7.5 : 5.0;
+  const aspect  = sp.scale.y / sp.scale.x;
+  sp.scale.set(targetW, targetW * aspect, 1);
+
+  voidScene.add(sp);
+  const entry = {
+    sp,
+    tOp:  c.bright * (c.clickable ? 1.0 : 0.97),
+    bp:   bp.clone(),
+    ph:   Math.random() * Math.PI * 2,
+    phY:  Math.random() * Math.PI * 2,
+    spd:  c.clickable ? 0.05 : 0.07 + Math.random() * 0.10,
+    amp:  c.clickable ? 0.07 : 0.05 + Math.random() * 0.08,
+    active: false,
+    isClickable: !!c.clickable,
+  };
+  voidItems.push(entry);
+  if (c.clickable) clickableSp = sp;
+});
+
+/* ═══════════════════════════════════════════
+   ROOM 01 SCENE
+═══════════════════════════════════════════ */
+
+const r01Items       = [];
+const r01Meshes      = [];
+let   r01HeroSp      = null;
+let   r01Built       = false;
+let   r01VideoEl     = null;
+let   r01DoorGroup   = null;
+let   r01DoorGlowMat = null;
+let   r01DoorHitBox  = null;
+
+/* ═══════════════════════════════════════════
+   ROOM 02 STATE
+═══════════════════════════════════════════ */
+
+const r02Items       = [];
+const r02Meshes      = [];
+let   r02HeroSp      = null;
+let   r02Built       = false;
+let   r02VideoEl     = null;
+let   r02DoorGroup   = null;
+let   r02DoorGlowMat = null;
+let   r02DoorHitBox  = null;
+
+function buildRoom01() {
+  if (r01Built) return;
+  r01Built = true;
+
+  // ── Back wall — room01-wall.png as a flat plane filling the user's view
+  function addBackWall(imgEl) {
+    const tex = new THREE.Texture(imgEl);
+    tex.needsUpdate = true;
+    const geo = new THREE.PlaneGeometry(14, 8);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTex: { value: tex } },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTex;
+        varying vec2 vUv;
+        void main() {
+          vec4 c = texture2D(uTex, vUv);
+          float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+          gl_FragColor = vec4(g, g, g, 1.0);
+        }
+      `,
+      side: THREE.FrontSide,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0, 1.8, -8);
+    r01Scene.add(mesh);
+  }
+
+  const skyImg = document.getElementById('r01sky');
+  if (skyImg.complete && skyImg.naturalWidth > 0) {
+    addBackWall(skyImg);
+  } else {
+    skyImg.onload  = () => addBackWall(skyImg);
+    skyImg.onerror = () => { /* image missing — black background */ };
+  }
+
+  // ── Hero clause — "No person in the United States\nshall"
+  r01HeroSp = mkSprite('No person in the United States\nshall', {
+    fontSize: 52, bright: 1.0, glow: true
+  });
+  r01HeroSp.scale.multiplyScalar(1.5);
+  r01HeroSp.position.set(0, 3.5, -7.0);
+  r01HeroSp.material.opacity = 0;
+  r01Scene.add(r01HeroSp);
+
+  // ── 37 words at 4 depth layers
+  R01_LAYERS.forEach((layer, li) => {
+    layer.idx.forEach((wordIdx) => {
+      const bright = layer.oMin + Math.random() * (layer.oMax - layer.oMin);
+      const fSize  = layer.fMin + Math.floor(Math.random() * (layer.fMax - layer.fMin));
+      const sp     = mkSprite(WORDS[wordIdx], { fontSize: fSize, bright });
+      const bp     = rndSphere(layer.rMin, layer.rMax);
+      sp.position.copy(bp);
+      r01Scene.add(sp);
+      r01Items.push({
+        sp,
+        delay: 0.3 + li * 0.6 + Math.random() * 1.2,
+        tOp:   bright,
+        bp:    bp.clone(),
+        ph:    Math.random() * Math.PI * 2,
+        phY:   Math.random() * Math.PI * 2,
+        spd:   0.10 + Math.random() * 0.20,
+        amp:   layer.rMin * 0.022 + Math.random() * 0.10,
+      });
+    });
+  });
+
+  // ── RIGHT PANEL — floating TV showing room01-video.mp4
+  // Starts muted; audio sequence plays ambient first, then unmutes video on ended
+  const videoEl = document.createElement('video');
+  videoEl.setAttribute('src',         'room01-video.mp4');
+  videoEl.setAttribute('muted',       '');
+  videoEl.setAttribute('loop',        '');
+  videoEl.setAttribute('playsinline', '');
+  videoEl.muted       = true;   // IDL property must also be set for Chrome
+  videoEl.loop        = true;
+  videoEl.playsInline = true;
+  videoEl.crossOrigin = 'anonymous';
+  // Append to DOM (hidden) — required for autoplay policy on some browsers
+  videoEl.style.display = 'none';
+  document.body.appendChild(videoEl);
+
+  // Store ref so we can play/pause with the room
+  r01VideoEl = videoEl;
+
+  const videoTex = new THREE.VideoTexture(videoEl);
+  videoTex.minFilter = THREE.LinearFilter;
+  videoTex.magFilter = THREE.LinearFilter;
+
+  // Video panel: 4 wide × 3 tall, left side
+  const tvPanel = mkGreyMesh(videoTex, 4.0, 3.0, 0.80);
+
+  // Bezel: 0.18 wider/taller, sits just behind
+  const bezelGeo = new THREE.PlaneGeometry(4.18, 3.18);
+  const bezelMat = new THREE.MeshBasicMaterial({ color: 0x0d0d0d, side: THREE.FrontSide });
+  const bezel    = new THREE.Mesh(bezelGeo, bezelMat);
+  bezel.position.set(-5, 1.8, -7.01);
+  bezel.rotation.y = 0;
+  r01Scene.add(bezel);
+
+  tvPanel.position.set(-5, 1.8, -7);
+  tvPanel.rotation.y = 0;
+  tvPanel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+  r01Scene.add(tvPanel);
+  r01Meshes.push(tvPanel);
+  r01Meshes.push(bezel);
+
+  bezel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+
+  // ── RIGHT PANEL — newspaper image (room01-paper1.jpeg) with aged overlay
+  function buildPaperPanel(imgEl) {
+    const CW = 520, CH = 680;
+    const cv  = document.createElement('canvas');
+    cv.width  = CW; cv.height = CH;
+    const ctx = cv.getContext('2d');
+
+    // Aged paper base
+    ctx.fillStyle = '#7a766f';
+    ctx.fillRect(0, 0, CW, CH);
+
+    // Draw the photo — fill inner area leaving room for headline banner
+    const BANNER = 88;
+    const iw = imgEl.naturalWidth || CW, ih = imgEl.naturalHeight || CH;
+    const scale = Math.max((CW - 24) / iw, (CH - BANNER - 24) / ih);
+    const dw = iw * scale, dh = ih * scale;
+    const dx = (CW - dw) * 0.5, dy = BANNER + (CH - BANNER - dh) * 0.5;
+    ctx.drawImage(imgEl, dx, dy, dw, dh);
+
+    // Grain overlay
+    for (let i = 0; i < 3000; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.04})`;
+      ctx.fillRect(Math.random() * CW, Math.random() * CH, 1, 1);
+    }
+
+    // Aged vignette
+    const vig = ctx.createRadialGradient(CW/2, CH/2, CW*0.3, CW/2, CH/2, CW*0.85);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, CW, CH);
+
+    // Double border
+    ctx.strokeStyle = '#1a1714'; ctx.lineWidth = 7;
+    ctx.strokeRect(6, 6, CW - 12, CH - 12);
+    ctx.strokeStyle = '#2e2a26'; ctx.lineWidth = 2;
+    ctx.strokeRect(14, 14, CW - 28, CH - 28);
+
+    // Headline banner at top
+    ctx.fillStyle = 'rgba(10,9,8,0.88)';
+    ctx.fillRect(0, 0, CW, BANNER);
+    // Thin rule above headline text
+    ctx.strokeStyle = '#555048'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(18, BANNER - 8); ctx.lineTo(CW - 18, BANNER - 8); ctx.stroke();
+
+    ctx.fillStyle = '#d6d0c8';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 21px Georgia, serif';
+    ctx.fillText('CONGRESS PASSES LANDMARK LAW', CW / 2, 34);
+    ctx.font = '13px Georgia, serif';
+    ctx.fillStyle = '#a09890';
+    ctx.fillText('June 23, 1972', CW / 2, 58);
+    ctx.font = 'italic 10px Georgia, serif';
+    ctx.fillStyle = '#6e6860';
+    ctx.fillText('Education Amendments of 1972 — Title IX', CW / 2, 76);
+
+    const tex = new THREE.CanvasTexture(cv);
+    const mesh = mkGreyMesh(tex, 4.0, 3.0, 0.88);
+    mesh.position.set(5, 1.8, -7);
+    mesh.rotation.y = 0;
+    mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+    r01Scene.add(mesh);
+    r01Meshes.push(mesh);
+  }
+
+  const paperImg = document.getElementById('r01paper');
+  if (paperImg.complete && paperImg.naturalWidth > 0) {
+    buildPaperPanel(paperImg);
+  } else {
+    paperImg.onload  = () => buildPaperPanel(paperImg);
+    paperImg.onerror = () => {
+      // Image missing — show a plain dark placeholder
+      const geo = new THREE.PlaneGeometry(4.0, 3.0);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x1a1714, side: THREE.FrontSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(5, 1.8, -7);
+      mesh.rotation.y = 0;
+      mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+      r01Scene.add(mesh);
+      r01Meshes.push(mesh);
+    };
+  }
+
+  // ── BACK WALL — glow edges + hit-box for Room 02 transition
+  buildWall();
+}
+
+let r01WallGlowActive = false; // set true after 60s timer
+
+function buildWall() {
+  const WW = 9, WH = 6;   // glow edge dimensions matching the door area in room01-wall.png
+  const WZ = -8;           // z position
+
+  // ── Edge glow planes — one per wall edge, initially invisible
+  r01DoorGlowMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0,
+    depthWrite: false, side: THREE.FrontSide,
+  });
+
+  const GT = 0.06; // glow strip thickness
+  const glowZ = WZ + 0.02;
+  const cy = 1.8;  // wall centre y
+
+  [
+    [WW,  GT,   0,          cy + WH / 2],  // top
+    [WW,  GT,   0,          cy - WH / 2],  // bottom
+    [GT,  WH,  -WW / 2,     cy],           // left
+    [GT,  WH,   WW / 2,     cy],           // right
+  ].forEach(([w, h, x, y]) => {
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      r01DoorGlowMat
+    );
+    mesh.position.set(x, y, glowZ);
+    r01Scene.add(mesh);
+  });
+
+  // Soft bloom overlay — slightly larger, very dim, behind the edge strips
+  r01DoorGroup = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW + 0.6, WH + 0.6),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0,
+      depthWrite: false, side: THREE.FrontSide,
+    })
+  );
+  r01DoorGroup.position.set(0, 1.8, WZ - 0.01);
+  r01Scene.add(r01DoorGroup);
+
+  // ── Invisible full-wall hit-box for click detection
+  r01DoorHitBox = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW, WH),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.FrontSide })
+  );
+  r01DoorHitBox.position.set(0, 1.8, WZ + 0.03);
+  r01Scene.add(r01DoorHitBox);
+
+  // ── 60-second timer — activate glow after user has had time to read
+  setTimeout(() => { r01WallGlowActive = true; }, 60000);
+}
+
+/* ═══════════════════════════════════════════
+   ROOM 03 STATE
+═══════════════════════════════════════════ */
+
+const r03Items       = [];
+const r03Meshes      = [];
+let   r03HeroSp      = null;
+let   r03Built       = false;
+let   r03VideoEl     = null;
+let   r03DoorGroup   = null;
+let   r03DoorGlowMat = null;
+let   r03DoorHitBox  = null;
+
+/* ═══════════════════════════════════════════
+   ROOM 02 — THE FIGHT
+═══════════════════════════════════════════ */
+
+let r02WallGlowActive = false;
+let r02T0             = null;
+
+function buildRoom02() {
+  if (r02Built) return;
+  r02Built = true;
+
+  // ── Back wall — room02-wall.png flat plane
+  function addBackWall02(imgEl) {
+    const tex = new THREE.Texture(imgEl);
+    tex.needsUpdate = true;
+    const geo = new THREE.PlaneGeometry(14, 8);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTex: { value: tex } },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTex;
+        varying vec2 vUv;
+        void main() {
+          vec4 c = texture2D(uTex, vUv);
+          float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)) * 0.65;
+          gl_FragColor = vec4(g, g, g, 1.0);
+        }
+      `,
+      side: THREE.FrontSide,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0, 1.8, -8);
+    r02Scene.add(mesh);
+  }
+
+  const skyImg = document.getElementById('r02sky');
+  if (skyImg.complete && skyImg.naturalWidth > 0) {
+    addBackWall02(skyImg);
+  } else {
+    skyImg.onload  = () => addBackWall02(skyImg);
+    skyImg.onerror = () => {};
+  }
+
+  // ── Hero clause
+  r02HeroSp = mkSprite('on the basis of sex', { fontSize: 52, bright: 1.0, glow: true });
+  r02HeroSp.scale.multiplyScalar(1.5);
+  r02HeroSp.position.set(0, 3.5, -6.0);
+  r02HeroSp.material.opacity = 0;
+  r02Scene.add(r02HeroSp);
+
+  // ── 37 words at 4 depth layers (darker / more urgent)
+  R02_LAYERS.forEach((layer, li) => {
+    layer.idx.forEach((wordIdx) => {
+      const bright = layer.oMin + Math.random() * (layer.oMax - layer.oMin);
+      const fSize  = layer.fMin + Math.floor(Math.random() * (layer.fMax - layer.fMin));
+      const sp     = mkSprite(WORDS[wordIdx], { fontSize: fSize, bright });
+      const bp     = rndSphere(layer.rMin, layer.rMax);
+      sp.position.copy(bp);
+      r02Scene.add(sp);
+      r02Items.push({
+        sp,
+        delay: 0.3 + li * 0.6 + Math.random() * 1.2,
+        tOp:   bright,
+        bp:    bp.clone(),
+        ph:    Math.random() * Math.PI * 2,
+        phY:   Math.random() * Math.PI * 2,
+        spd:   0.10 + Math.random() * 0.20,
+        amp:   layer.rMin * 0.022 + Math.random() * 0.10,
+      });
+    });
+  });
+
+  // ── LEFT PANEL — video (room02-mom.mp4, silent loop)
+  const videoEl = document.createElement('video');
+  videoEl.setAttribute('src',         'room02-mom.mp4');
+  videoEl.setAttribute('muted',       '');
+  videoEl.setAttribute('loop',        '');
+  videoEl.setAttribute('playsinline', '');
+  videoEl.muted       = true;
+  videoEl.loop        = true;
+  videoEl.playsInline = true;
+  videoEl.crossOrigin = 'anonymous';
+  videoEl.style.display = 'none';
+  document.body.appendChild(videoEl);
+  r02VideoEl = videoEl;
+
+  const videoTex = new THREE.VideoTexture(videoEl);
+  videoTex.minFilter = THREE.LinearFilter;
+  videoTex.magFilter = THREE.LinearFilter;
+
+  const tvPanel = mkGreyMesh(videoTex, 4.0, 3.0, 0.80);
+  const bezelGeo = new THREE.PlaneGeometry(4.18, 3.18);
+  const bezelMat = new THREE.MeshBasicMaterial({ color: 0x0d0d0d, side: THREE.FrontSide });
+  const bezel    = new THREE.Mesh(bezelGeo, bezelMat);
+  bezel.position.set(-5, 1.8, -7.01);
+  r02Scene.add(bezel);
+  tvPanel.position.set(-5, 1.8, -7);
+  tvPanel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+  r02Scene.add(tvPanel);
+  r02Meshes.push(tvPanel);
+  r02Meshes.push(bezel);
+  bezel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+
+  // ── RIGHT PANEL — newspaper image (room02-paper1.jpg)
+  function buildPaperPanel02(imgEl) {
+    const CW = 520, CH = 680;
+    const cv  = document.createElement('canvas');
+    cv.width  = CW; cv.height = CH;
+    const ctx = cv.getContext('2d');
+
+    ctx.fillStyle = '#6a6660';
+    ctx.fillRect(0, 0, CW, CH);
+
+    const BANNER = 88;
+    const iw = imgEl.naturalWidth || CW, ih = imgEl.naturalHeight || CH;
+    const scale = Math.max((CW - 24) / iw, (CH - BANNER - 24) / ih);
+    const dw = iw * scale, dh = ih * scale;
+    ctx.drawImage(imgEl, (CW - dw) * 0.5, BANNER + (CH - BANNER - dh) * 0.5, dw, dh);
+
+    for (let i = 0; i < 3000; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.05})`;
+      ctx.fillRect(Math.random() * CW, Math.random() * CH, 1, 1);
+    }
+
+    const vig = ctx.createRadialGradient(CW/2, CH/2, CW*0.3, CW/2, CH/2, CW*0.85);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, CW, CH);
+
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 7;
+    ctx.strokeRect(6, 6, CW - 12, CH - 12);
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
+    ctx.strokeRect(14, 14, CW - 28, CH - 28);
+
+    ctx.fillStyle = 'rgba(8,8,8,0.90)';
+    ctx.fillRect(0, 0, CW, BANNER);
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(18, BANNER - 8); ctx.lineTo(CW - 18, BANNER - 8); ctx.stroke();
+
+    ctx.fillStyle = '#ccc8c2';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 20px Georgia, serif';
+    ctx.fillText('WOMEN FIGHT BACK', CW / 2, 34);
+    ctx.font = '13px Georgia, serif';
+    ctx.fillStyle = '#888480';
+    ctx.fillText('Title IX Under Threat', CW / 2, 56);
+    ctx.font = 'italic 10px Georgia, serif';
+    ctx.fillStyle = '#5e5c58';
+    ctx.fillText('The battle to enforce the law begins', CW / 2, 74);
+
+    const tex = new THREE.CanvasTexture(cv);
+    const mesh = mkGreyMesh(tex, 4.0, 3.0, 0.82);
+    mesh.position.set(5, 1.8, -7);
+    mesh.rotation.y = 0;
+    mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+    r02Scene.add(mesh);
+    r02Meshes.push(mesh);
+  }
+
+  const paperImg = document.getElementById('r02paper');
+  if (paperImg.complete && paperImg.naturalWidth > 0) {
+    buildPaperPanel02(paperImg);
+  } else {
+    paperImg.onload  = () => buildPaperPanel02(paperImg);
+    paperImg.onerror = () => {
+      const geo  = new THREE.PlaneGeometry(4.0, 3.0);
+      const mat  = new THREE.MeshBasicMaterial({ color: 0x111110, side: THREE.FrontSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(5, 1.8, -7);
+      mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+      r02Scene.add(mesh);
+      r02Meshes.push(mesh);
+    };
+  }
+
+  buildWall02();
+}
+
+function buildWall02() {
+  const WW = 9, WH = 6, WZ = -8, cy = 1.8;
+
+  r02DoorGlowMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0,
+    depthWrite: false, side: THREE.FrontSide,
+  });
+
+  const GT = 0.06, glowZ = WZ + 0.02;
+  [
+    [WW, GT,  0,        cy + WH / 2],
+    [WW, GT,  0,        cy - WH / 2],
+    [GT, WH, -WW / 2,   cy],
+    [GT, WH,  WW / 2,   cy],
+  ].forEach(([w, h, x, y]) => {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), r02DoorGlowMat);
+    mesh.position.set(x, y, glowZ);
+    r02Scene.add(mesh);
+  });
+
+  r02DoorGroup = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW + 0.6, WH + 0.6),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide })
+  );
+  r02DoorGroup.position.set(0, cy, WZ - 0.01);
+  r02Scene.add(r02DoorGroup);
+
+  r02DoorHitBox = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW, WH),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.FrontSide })
+  );
+  r02DoorHitBox.position.set(0, cy, WZ + 0.03);
+  r02Scene.add(r02DoorHitBox);
+
+  setTimeout(() => { r02WallGlowActive = true; }, 60000);
+}
+
+/* ═══════════════════════════════════════════
+   ROOM 03 — THE DOOR OPENS
+═══════════════════════════════════════════ */
+
+let r03WallGlowActive = false;
+let r03T0             = null;
+
+function buildRoom03() {
+  if (r03Built) return;
+  r03Built = true;
+
+  // ── Back wall — room03-wall.png flat plane (slightly brightened for hope)
+  function addBackWall03(imgEl) {
+    const tex = new THREE.Texture(imgEl);
+    tex.needsUpdate = true;
+    const geo = new THREE.PlaneGeometry(14, 8);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTex: { value: tex } },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTex;
+        varying vec2 vUv;
+        void main() {
+          vec4 c = texture2D(uTex, vUv);
+          float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)) * 0.78;
+          gl_FragColor = vec4(g, g, g, 1.0);
+        }
+      `,
+      side: THREE.FrontSide,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0, 1.8, -8);
+    r03Scene.add(mesh);
+  }
+
+  const skyImg = document.getElementById('r03sky');
+  if (skyImg.complete && skyImg.naturalWidth > 0) {
+    addBackWall03(skyImg);
+  } else {
+    skyImg.onload  = () => addBackWall03(skyImg);
+    skyImg.onerror = () => {};
+  }
+
+  // ── Hero clause
+  r03HeroSp = mkSprite('be excluded\nfrom participation in', { fontSize: 52, bright: 1.0, glow: true });
+  r03HeroSp.scale.multiplyScalar(1.5);
+  r03HeroSp.position.set(0, 3.5, -6.0);
+  r03HeroSp.material.opacity = 0;
+  r03Scene.add(r03HeroSp);
+
+  // ── 37 words at 4 depth layers
+  R03_LAYERS.forEach((layer, li) => {
+    layer.idx.forEach((wordIdx) => {
+      const bright = layer.oMin + Math.random() * (layer.oMax - layer.oMin);
+      const fSize  = layer.fMin + Math.floor(Math.random() * (layer.fMax - layer.fMin));
+      const sp     = mkSprite(WORDS[wordIdx], { fontSize: fSize, bright });
+      const bp     = rndSphere(layer.rMin, layer.rMax);
+      sp.position.copy(bp);
+      r03Scene.add(sp);
+      r03Items.push({
+        sp,
+        delay: 0.3 + li * 0.6 + Math.random() * 1.2,
+        tOp:   bright,
+        bp:    bp.clone(),
+        ph:    Math.random() * Math.PI * 2,
+        phY:   Math.random() * Math.PI * 2,
+        spd:   0.10 + Math.random() * 0.20,
+        amp:   layer.rMin * 0.022 + Math.random() * 0.10,
+      });
+    });
+  });
+
+  // ── LEFT PANEL — video (room03-mom.mp4)
+  const videoEl = document.createElement('video');
+  videoEl.setAttribute('src',         'room03-mom.mp4');
+  videoEl.setAttribute('muted',       '');
+  videoEl.setAttribute('loop',        '');
+  videoEl.setAttribute('playsinline', '');
+  videoEl.muted       = true;
+  videoEl.loop        = true;
+  videoEl.playsInline = true;
+  videoEl.crossOrigin = 'anonymous';
+  videoEl.style.display = 'none';
+  document.body.appendChild(videoEl);
+  r03VideoEl = videoEl;
+
+  const videoTex = new THREE.VideoTexture(videoEl);
+  videoTex.minFilter = THREE.LinearFilter;
+  videoTex.magFilter = THREE.LinearFilter;
+
+  const tvPanel = mkGreyMesh(videoTex, 4.0, 3.0, 0.80);
+  const bezelGeo = new THREE.PlaneGeometry(4.18, 3.18);
+  const bezelMat = new THREE.MeshBasicMaterial({ color: 0x0d0d0d, side: THREE.FrontSide });
+  const bezel    = new THREE.Mesh(bezelGeo, bezelMat);
+  bezel.position.set(-5, 1.8, -7.01);
+  r03Scene.add(bezel);
+  tvPanel.position.set(-5, 1.8, -7);
+  tvPanel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+  r03Scene.add(tvPanel);
+  r03Meshes.push(tvPanel);
+  r03Meshes.push(bezel);
+  bezel.userData = { bobPhase: 0.8, bobAmp: 0.055, rotPhase: 1.1 };
+
+  // ── RIGHT PANEL — newspaper image (room03-paper1.jpg)
+  function buildPaperPanel03(imgEl) {
+    const CW = 520, CH = 680;
+    const cv  = document.createElement('canvas');
+    cv.width  = CW; cv.height = CH;
+    const ctx = cv.getContext('2d');
+
+    ctx.fillStyle = '#7a7268';
+    ctx.fillRect(0, 0, CW, CH);
+
+    const BANNER = 88;
+    const iw = imgEl.naturalWidth || CW, ih = imgEl.naturalHeight || CH;
+    const scale = Math.max((CW - 24) / iw, (CH - BANNER - 24) / ih);
+    const dw = iw * scale, dh = ih * scale;
+    ctx.drawImage(imgEl, (CW - dw) * 0.5, BANNER + (CH - BANNER - dh) * 0.5, dw, dh);
+
+    for (let i = 0; i < 3000; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.04})`;
+      ctx.fillRect(Math.random() * CW, Math.random() * CH, 1, 1);
+    }
+
+    const vig = ctx.createRadialGradient(CW/2, CH/2, CW*0.3, CW/2, CH/2, CW*0.85);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.40)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, CW, CH);
+
+    ctx.strokeStyle = '#1a1714'; ctx.lineWidth = 7;
+    ctx.strokeRect(6, 6, CW - 12, CH - 12);
+    ctx.strokeStyle = '#2e2a26'; ctx.lineWidth = 2;
+    ctx.strokeRect(14, 14, CW - 28, CH - 28);
+
+    ctx.fillStyle = 'rgba(10,9,8,0.88)';
+    ctx.fillRect(0, 0, CW, BANNER);
+    ctx.strokeStyle = '#555048'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(18, BANNER - 8); ctx.lineTo(CW - 18, BANNER - 8); ctx.stroke();
+
+    ctx.fillStyle = '#d6d0c8';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 20px Georgia, serif';
+    ctx.fillText('THE DOOR OPENS', CW / 2, 34);
+    ctx.font = '13px Georgia, serif';
+    ctx.fillStyle = '#a09890';
+    ctx.fillText('Athletes Step Forward', CW / 2, 56);
+    ctx.font = 'italic 10px Georgia, serif';
+    ctx.fillStyle = '#6e6860';
+    ctx.fillText('Women claim their right to participate', CW / 2, 74);
+
+    const tex = new THREE.CanvasTexture(cv);
+    const mesh = mkGreyMesh(tex, 4.0, 3.0, 0.88);
+    mesh.position.set(5, 1.8, -7);
+    mesh.rotation.y = 0;
+    mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+    r03Scene.add(mesh);
+    r03Meshes.push(mesh);
+  }
+
+  const paperImg = document.getElementById('r03paper');
+  if (paperImg.complete && paperImg.naturalWidth > 0) {
+    buildPaperPanel03(paperImg);
+  } else {
+    paperImg.onload  = () => buildPaperPanel03(paperImg);
+    paperImg.onerror = () => {
+      const geo  = new THREE.PlaneGeometry(4.0, 3.0);
+      const mat  = new THREE.MeshBasicMaterial({ color: 0x1a1714, side: THREE.FrontSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(5, 1.8, -7);
+      mesh.userData = { bobPhase: 2.4, bobAmp: 0.06, rotPhase: 2.9 };
+      r03Scene.add(mesh);
+      r03Meshes.push(mesh);
+    };
+  }
+
+  buildWall03();
+}
+
+function buildWall03() {
+  const WW = 9, WH = 6, WZ = -8, cy = 1.8;
+
+  r03DoorGlowMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0,
+    depthWrite: false, side: THREE.FrontSide,
+  });
+
+  const GT = 0.06, glowZ = WZ + 0.02;
+  [
+    [WW, GT,  0,        cy + WH / 2],
+    [WW, GT,  0,        cy - WH / 2],
+    [GT, WH, -WW / 2,   cy],
+    [GT, WH,  WW / 2,   cy],
+  ].forEach(([w, h, x, y]) => {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), r03DoorGlowMat);
+    mesh.position.set(x, y, glowZ);
+    r03Scene.add(mesh);
+  });
+
+  r03DoorGroup = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW + 0.6, WH + 0.6),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide })
+  );
+  r03DoorGroup.position.set(0, cy, WZ - 0.01);
+  r03Scene.add(r03DoorGroup);
+
+  r03DoorHitBox = new THREE.Mesh(
+    new THREE.PlaneGeometry(WW, WH),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.FrontSide })
+  );
+  r03DoorHitBox.position.set(0, cy, WZ + 0.03);
+  r03Scene.add(r03DoorHitBox);
+
+  setTimeout(() => { r03WallGlowActive = true; }, 60000);
+}
+
+/* ═══════════════════════════════════════════
+   ENTRY AUDIO
+═══════════════════════════════════════════ */
+
+const entryAudio = document.getElementById('entry-audio');
+
+function playEntryAudio() {
+  entryAudio.currentTime = 0;
+  entryAudio.play().catch(() => { /* autoplay blocked — silently ignore */ });
+}
+
+function stopEntryAudio() {
+  entryAudio.pause();
+  entryAudio.currentTime = 0;
+}
+
+/* ═══════════════════════════════════════════
+   ROOM 01 AUDIO
+═══════════════════════════════════════════ */
+
+const r01Audio = document.getElementById('r01-audio');
+r01Audio.volume = 0.35;
+
+// Play video with sound; retry on next gesture if autoplay blocked
+function playVideoWithSound() {
+  if (!r01VideoEl) return;
+  r01VideoEl.muted = false;
+  const p = r01VideoEl.play();
+  if (p !== undefined) {
+    p.catch(() => {
+      r01VideoEl.muted = true; // fall back to muted so it at least shows
+      r01VideoEl.play().catch(() => {});
+    });
+  }
+}
+
+// Play video muted (for preroll / silent preview)
+function playVideoMuted() {
+  if (!r01VideoEl) return;
+  r01VideoEl.muted = true;
+  r01VideoEl.play().catch(() => {
+    const retry = () => {
+      r01VideoEl.play().catch(() => {});
+      window.removeEventListener('pointerdown', retry);
+    };
+    window.addEventListener('pointerdown', retry, { once: true });
+  });
+}
+
+function startRoom01Audio() {
+  // Step 1: play ambient audio (room01-audio-trim.mp3)
+  r01Audio.currentTime = 0;
+  r01Audio.play().catch(() => {});
+
+  // Step 2: start video muted so texture is live while audio plays
+  playVideoMuted();
+
+  // Step 3: when ambient audio ends, unmute video so its audio plays
+  r01Audio.onended = () => {
+    r01Audio.onended = null; // remove handler so it doesn't re-fire
+    playVideoWithSound();
+  };
+}
+
+function stopRoom01Audio() {
+  r01Audio.onended = null;
+  r01Audio.pause();
+  r01Audio.currentTime = 0;
+  if (r01VideoEl) { r01VideoEl.pause(); r01VideoEl.muted = true; r01VideoEl.currentTime = 0; }
+}
+
+/* ═══════════════════════════════════════════
+   ROOM 02 AUDIO
+═══════════════════════════════════════════ */
+
+const r02Audio = document.getElementById('r02-audio');
+r02Audio.volume = 0.30;
+
+function playR02VideoWithSound() {
+  if (!r02VideoEl) return;
+  r02VideoEl.muted = false;
+  const p = r02VideoEl.play();
+  if (p !== undefined) {
+    p.catch(() => {
+      r02VideoEl.muted = true; // fall back to muted if autoplay blocked
+      r02VideoEl.play().catch(() => {});
+    });
+  }
+}
+
+function startRoom02Audio() {
+  // Step 1: play the 15-second ambient clip; video stays paused + muted
+  r02Audio.currentTime = 0;
+  r02Audio.play().catch(() => {});
+
+  // Step 2: when clip ends, start video with full sound
+  r02Audio.onended = () => {
+    r02Audio.onended = null;
+    playR02VideoWithSound();
+  };
+}
+
+function stopRoom02Audio() {
+  r02Audio.onended = null;
+  r02Audio.pause();
+  r02Audio.currentTime = 0;
+  if (r02VideoEl) { r02VideoEl.pause(); r02VideoEl.muted = true; r02VideoEl.currentTime = 0; }
+}
+
+/* ═══════════════════════════════════════════
+   ROOM 03 AUDIO
+═══════════════════════════════════════════ */
+
+const r03Audio = document.getElementById('r03-audio');
+r03Audio.volume = 0.35;
+
+function playR03VideoWithSound() {
+  if (!r03VideoEl) return;
+  r03VideoEl.muted = false;
+  const p = r03VideoEl.play();
+  if (p !== undefined) {
+    p.catch(() => {
+      r03VideoEl.muted = true;
+      r03VideoEl.play().catch(() => {});
+    });
+  }
+}
+
+function startRoom03Audio() {
+  // Step 1: play the 6-second ambient clip; video stays paused + muted
+  r03Audio.currentTime = 0;
+  r03Audio.play().catch(() => {});
+
+  // Step 2: when clip ends, start video with full sound
+  r03Audio.onended = () => {
+    r03Audio.onended = null;
+    playR03VideoWithSound();
+  };
+}
+
+function stopRoom03Audio() {
+  r03Audio.onended = null;
+  r03Audio.pause();
+  r03Audio.currentTime = 0;
+  if (r03VideoEl) { r03VideoEl.pause(); r03VideoEl.muted = true; r03VideoEl.currentTime = 0; }
+}
+
+/* ═══════════════════════════════════════════
+   VOID WORD SCHEDULE
+   Called once when user enters the void.
+   Activates each word/clause via setTimeout
+   in sync with the audio (~0.4 s per word).
+═══════════════════════════════════════════ */
+
+// Audio starts at 850 ms after button click.
+// Words fire at 850 + wordIndex * 400 ms.
+// Clauses fire 300 ms after their last constituent word.
+const AUDIO_START_MS   = 850;
+const WORD_INTERVAL_MS = 400;
+
+// Word-index boundaries for each clause in VOID_CLAUSES
+const CLAUSE_LAST_WORD = [6, 11, 16, 21, 36]; // index of each clause's last word in WORDS[]
+
+function startVoidSequence() {
+  playEntryAudio();
+
+  // Individual words (voidItems 0..36)
+  WORDS.forEach((_, i) => {
+    const ms = AUDIO_START_MS + i * WORD_INTERVAL_MS;
+    setTimeout(() => { voidItems[i].active = true; }, ms);
+  });
+
+  // Clause phrases (voidItems 37..41)
+  VOID_CLAUSES.forEach((_, ci) => {
+    const lastWordIdx = CLAUSE_LAST_WORD[ci];
+    const ms = AUDIO_START_MS + lastWordIdx * WORD_INTERVAL_MS + 300;
+    setTimeout(() => { voidItems[37 + ci].active = true; }, ms);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   RAYCASTING
+═══════════════════════════════════════════ */
+
+let isHoveringClause = false;
+let isHoveringDoor   = false;
+
+function handleHover(cx, cy) {
+  raycaster.setFromCamera(ndcFromEvent(cx, cy), camera);
+
+  if (activeScene === voidScene && clickableSp && clickableSp.material.opacity > 0.1) {
+    const hits = raycaster.intersectObject(clickableSp);
+    const hit  = hits.length > 0;
+    if (hit !== isHoveringClause) {
+      isHoveringClause = hit;
+      cvs.classList.toggle('hovering', hit && !isHoveringDoor);
+      document.getElementById('clause-tip').style.opacity = hit ? '1' : '0';
+    }
+  }
+
+  if (activeScene === r01Scene && r01DoorHitBox) {
+    const hits = raycaster.intersectObject(r01DoorHitBox);
+    const hit  = hits.length > 0;
+    if (hit !== isHoveringDoor) { isHoveringDoor = hit; cvs.classList.toggle('hovering', hit); }
+  }
+
+  if (activeScene === r02Scene && r02DoorHitBox) {
+    const hits = raycaster.intersectObject(r02DoorHitBox);
+    const hit  = hits.length > 0;
+    if (hit !== isHoveringDoor) { isHoveringDoor = hit; cvs.classList.toggle('hovering', hit); }
+  }
+
+  if (activeScene === r03Scene && r03DoorHitBox) {
+    const hits = raycaster.intersectObject(r03DoorHitBox);
+    const hit  = hits.length > 0;
+    if (hit !== isHoveringDoor) { isHoveringDoor = hit; cvs.classList.toggle('hovering', hit); }
+  }
+}
+
+function handleClick(cx, cy) {
+  raycaster.setFromCamera(ndcFromEvent(cx, cy), camera);
+
+  if (activeScene === voidScene && clickableSp && clickableSp.material.opacity > 0.1) {
+    const hits = raycaster.intersectObject(clickableSp);
+    if (hits.length > 0) { enterRoom01(); return; }
+  }
+
+  if (activeScene === r01Scene && r01DoorHitBox) {
+    const hits = raycaster.intersectObject(r01DoorHitBox);
+    if (hits.length > 0) { enterRoom02(); return; }
+  }
+
+  if (activeScene === r02Scene && r02DoorHitBox) {
+    const hits = raycaster.intersectObject(r02DoorHitBox);
+    if (hits.length > 0) { enterRoom03(); return; }
+  }
+
+  if (activeScene === r03Scene && r03DoorHitBox) {
+    const hits = raycaster.intersectObject(r03DoorHitBox);
+    if (hits.length > 0) enterRoom04();
+  }
+}
+
+/* ═══════════════════════════════════════════
+   TRANSITIONS
+═══════════════════════════════════════════ */
+
+function doVeil(midFn) {
+  const veil = document.getElementById('veil');
+  veil.classList.add('on');
+  setTimeout(() => {
+    midFn();
+    // Two rAF frames to ensure DOM + Three.js both update
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+    }));
+  }, 650);
+}
+
+let r01T0 = null; // Room01 clock start
+
+function enterRoom01() {
+  stopEntryAudio();
+  isHoveringClause = false;
+  cvs.classList.remove('hovering');
+  document.getElementById('clause-tip').style.opacity = '0';
+
+  doVeil(() => {
+    buildRoom01();
+
+    // Capture base mesh transforms on first entry; reset sprite opacities on re-entry
+    for (const mesh of r01Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y;
+      }
+    }
+    if (r01HeroSp) r01HeroSp.material.opacity = 0;
+    for (const d of r01Items) d.sp.material.opacity = 0;
+    isHoveringDoor = false;
+    r01WallGlowActive = false;
+
+    activeScene = r01Scene;
+    r01T0       = null;
+
+    // Reset camera to face hero clause
+    yaw = tYaw = 0;
+    pitch = tPitch = 0;
+    idleRotate = true;
+
+    document.getElementById('back-btn').style.display = 'block';
+
+    const hint = document.getElementById('hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 5500);
+
+    // Start ambient audio + video after veil lifts
+    setTimeout(startRoom01Audio, 700);
+  });
+}
+
+function enterRoom02() {
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+  stopRoom01Audio();
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    buildRoom02();
+
+    for (const mesh of r02Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r02HeroSp) r02HeroSp.material.opacity = 0;
+    for (const d of r02Items) d.sp.material.opacity = 0;
+    isHoveringDoor    = false;
+    r02WallGlowActive = false;
+
+    activeScene = r02Scene;
+    r02T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 01';
+    document.getElementById('back-btn').style.display = 'block';
+
+    const hint = document.getElementById('hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 5500);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom02Audio, 700);
+  }, 650);
+}
+
+function returnToRoom01() {
+  stopRoom02Audio();
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    // Re-init r01 state so it fades back in cleanly
+    for (const mesh of r01Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r01HeroSp) r01HeroSp.material.opacity = 0;
+    for (const d of r01Items) d.sp.material.opacity = 0;
+    isHoveringDoor    = false;
+    r01WallGlowActive = false;
+
+    activeScene = r01Scene;
+    r01T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; The Void';
+    document.getElementById('back-btn').style.display = 'block';
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom01Audio, 700);
+  }, 650);
+}
+
+function enterRoom03() {
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+  stopRoom02Audio();
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    buildRoom03();
+
+    for (const mesh of r03Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r03HeroSp) r03HeroSp.material.opacity = 0;
+    for (const d of r03Items) d.sp.material.opacity = 0;
+    isHoveringDoor    = false;
+    r03WallGlowActive = false;
+
+    activeScene = r03Scene;
+    r03T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 02';
+    document.getElementById('back-btn').style.display = 'block';
+
+    // Fade in warm amber overlay
+    document.getElementById('warmth').style.opacity = '1';
+
+    const hint = document.getElementById('hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 5500);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom03Audio, 700);
+  }, 650);
+}
+
+function returnToRoom02() {
+  stopRoom03Audio();
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+
+  // Fade out warm amber overlay
+  document.getElementById('warmth').style.opacity = '0';
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+
+  setTimeout(() => {
+    for (const mesh of r02Meshes) {
+      if (mesh.userData.initialY === undefined) {
+        mesh.userData.initialY = mesh.position.y;
+        mesh.userData.baseRotY = mesh.rotation.y || 0;
+      }
+    }
+    if (r02HeroSp) r02HeroSp.material.opacity = 0;
+    for (const d of r02Items) d.sp.material.opacity = 0;
+    isHoveringDoor    = false;
+    r02WallGlowActive = false;
+
+    activeScene = r02Scene;
+    r02T0       = null;
+
+    yaw = tYaw = 0; pitch = tPitch = 0; idleRotate = true;
+
+    document.getElementById('back-btn').innerHTML = '&#8592;&nbsp; Room 01';
+    document.getElementById('back-btn').style.display = 'block';
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      veil.classList.remove('on');
+      setTimeout(() => veil.classList.remove('white'), 700);
+    }));
+
+    setTimeout(startRoom02Audio, 700);
+  }, 650);
+}
+
+function enterRoom04() {
+  isHoveringDoor = false;
+  cvs.classList.remove('hovering');
+  stopRoom03Audio();
+  // Room 04 not yet built — white flash placeholder
+  const veil = document.getElementById('veil');
+  veil.classList.add('white');
+  veil.classList.add('on');
+  setTimeout(() => {
+    veil.classList.remove('on');
+    setTimeout(() => veil.classList.remove('white'), 700);
+  }, 1500);
+}
+
+function returnToVoid() {
+  stopRoom01Audio();
+  isHoveringDoor = false;
+  doVeil(() => {
+    activeScene = voidScene;
+    idleRotate  = false;
+    document.getElementById('back-btn').style.display = 'none';
+  });
+}
+
+/* ═══════════════════════════════════════════
+   ANIMATION LOOP
+═══════════════════════════════════════════ */
+
+let voidActive = false;
+let voidT0     = null;
+
+(function loop(ts) {
+  requestAnimationFrame(loop);
+
+  // ── Camera look smooth
+  if (idleRotate && activeScene === voidScene && voidActive) tYaw += 0.000125;
+  yaw   += (tYaw   - yaw)   * 0.062;
+  pitch += (tPitch - pitch) * 0.062;
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  // ── VOID scene updates
+  if (activeScene === voidScene && voidActive) {
+    if (voidT0 === null) voidT0 = ts;
+    const t = (ts - voidT0) * 0.001;
+
+    for (const d of voidItems) {
+      const mat = d.sp.material;
+      if (d.active && mat.opacity < d.tOp) {
+        mat.opacity = Math.min(d.tOp, mat.opacity + 0.009);
+      }
+      if (mat.opacity > 0.001) {
+        const s = t * d.spd;
+        d.sp.position.x = d.bp.x + Math.sin(s         + d.ph)  * d.amp;
+        d.sp.position.y = d.bp.y + Math.cos(s * 0.63   + d.phY) * d.amp * 0.75;
+        d.sp.position.z = d.bp.z + Math.sin(s * 0.47   + d.ph + 1.8) * d.amp * 0.55;
+      }
+    }
+
+    // Pulse the clickable clause once it has appeared
+    if (clickableSp && clickableSp.material.opacity > 0.05) {
+      const baseOp = VOID_CLAUSES[0].bright;
+      clickableSp.material.opacity = baseOp * (0.78 + 0.22 * Math.sin(ts * 0.0015));
+    }
+  }
+
+  // ── ROOM 01 scene updates
+  if (activeScene === r01Scene) {
+    if (r01T0 === null) r01T0 = ts;
+    const t = (ts - r01T0) * 0.001;
+
+    // Hero clause — fade in, then steady pulse
+    if (r01HeroSp) {
+      const heroCurrent = r01HeroSp.material.opacity;
+      if (heroCurrent < 0.98) {
+        r01HeroSp.material.opacity = Math.min(0.98, heroCurrent + 0.006);
+      } else {
+        // Settled: gentle breathe 0.86–0.98
+        r01HeroSp.material.opacity = 0.86 + 0.12 * (0.5 + 0.5 * Math.sin(t * 0.9));
+      }
+      // Subtle vertical float
+      r01HeroSp.position.y = 3.5 + Math.sin(t * 0.22) * 0.08;
+    }
+
+    // Word sprites
+    for (const d of r01Items) {
+      const mat = d.sp.material;
+      if (t > d.delay && mat.opacity < d.tOp) {
+        mat.opacity = Math.min(d.tOp, mat.opacity + 0.006);
+      }
+      if (mat.opacity > 0.001) {
+        const s = t * d.spd;
+        d.sp.position.x = d.bp.x + Math.sin(s        + d.ph)  * d.amp;
+        d.sp.position.y = d.bp.y + Math.cos(s * 0.63  + d.phY) * d.amp * 0.75;
+        d.sp.position.z = d.bp.z + Math.sin(s * 0.47  + d.ph + 1.8) * d.amp * 0.55;
+      }
+    }
+
+    // Newspaper card bob + subtle yaw sway
+    for (const mesh of r01Meshes) {
+      const ud = mesh.userData;
+      mesh.position.y = ud.initialY + Math.sin(t * 0.38 + ud.bobPhase) * ud.bobAmp;
+      mesh.rotation.y = ud.baseRotY  + Math.sin(t * 0.25 + ud.rotPhase) * 0.04;
+    }
+
+    // Wall edge glow — only pulses after 60s, brightens on hover
+    if (r01DoorGlowMat) {
+      if (r01WallGlowActive || isHoveringDoor) {
+        const base  = isHoveringDoor ? 0.70 : 0.30;
+        const range = isHoveringDoor ? 0.25 : 0.22;
+        const glow  = base + range * Math.sin(t * 1.6);
+        r01DoorGlowMat.opacity = glow;
+        // bloom plane (stored as r01DoorGroup mesh)
+        if (r01DoorGroup && r01DoorGroup.material) {
+          r01DoorGroup.material.opacity = glow * 0.12;
+        }
+      } else {
+        r01DoorGlowMat.opacity = 0;
+        if (r01DoorGroup && r01DoorGroup.material) r01DoorGroup.material.opacity = 0;
+      }
+    }
+  }
+
+  // ── ROOM 02 scene updates
+  if (activeScene === r02Scene) {
+    if (r02T0 === null) r02T0 = ts;
+    const t = (ts - r02T0) * 0.001;
+
+    // Hero clause — fade in, then urgent breathe
+    if (r02HeroSp) {
+      const heroCurrent = r02HeroSp.material.opacity;
+      if (heroCurrent < 0.98) {
+        r02HeroSp.material.opacity = Math.min(0.98, heroCurrent + 0.007);
+      } else {
+        r02HeroSp.material.opacity = 0.82 + 0.16 * (0.5 + 0.5 * Math.sin(t * 1.1));
+      }
+      r02HeroSp.position.y = 3.5 + Math.sin(t * 0.28) * 0.07;
+    }
+
+    // Word sprites
+    for (const d of r02Items) {
+      const mat = d.sp.material;
+      if (t > d.delay && mat.opacity < d.tOp) {
+        mat.opacity = Math.min(d.tOp, mat.opacity + 0.006);
+      }
+      if (mat.opacity > 0.001) {
+        const s = t * d.spd;
+        d.sp.position.x = d.bp.x + Math.sin(s        + d.ph)  * d.amp;
+        d.sp.position.y = d.bp.y + Math.cos(s * 0.63  + d.phY) * d.amp * 0.75;
+        d.sp.position.z = d.bp.z + Math.sin(s * 0.47  + d.ph + 1.8) * d.amp * 0.55;
+      }
+    }
+
+    // Panel bob + subtle sway
+    for (const mesh of r02Meshes) {
+      const ud = mesh.userData;
+      if (ud.initialY !== undefined) {
+        mesh.position.y = ud.initialY + Math.sin(t * 0.38 + ud.bobPhase) * ud.bobAmp;
+        mesh.rotation.y = ud.baseRotY  + Math.sin(t * 0.25 + ud.rotPhase) * 0.04;
+      }
+    }
+
+    // Wall edge glow
+    if (r02DoorGlowMat) {
+      if (r02WallGlowActive || isHoveringDoor) {
+        const base  = isHoveringDoor ? 0.70 : 0.30;
+        const range = isHoveringDoor ? 0.25 : 0.22;
+        const glow  = base + range * Math.sin(t * 1.6);
+        r02DoorGlowMat.opacity = glow;
+        if (r02DoorGroup && r02DoorGroup.material) {
+          r02DoorGroup.material.opacity = glow * 0.12;
+        }
+      } else {
+        r02DoorGlowMat.opacity = 0;
+        if (r02DoorGroup && r02DoorGroup.material) r02DoorGroup.material.opacity = 0;
+      }
+    }
+  }
+
+  // ── ROOM 03 scene updates
+  if (activeScene === r03Scene) {
+    if (r03T0 === null) r03T0 = ts;
+    const t = (ts - r03T0) * 0.001;
+
+    // Hero clause — fade in, then hopeful slow breathe
+    if (r03HeroSp) {
+      const heroCurrent = r03HeroSp.material.opacity;
+      if (heroCurrent < 0.98) {
+        r03HeroSp.material.opacity = Math.min(0.98, heroCurrent + 0.006);
+      } else {
+        r03HeroSp.material.opacity = 0.88 + 0.10 * (0.5 + 0.5 * Math.sin(t * 0.8));
+      }
+      r03HeroSp.position.y = 3.5 + Math.sin(t * 0.20) * 0.09;
+    }
+
+    // Word sprites
+    for (const d of r03Items) {
+      const mat = d.sp.material;
+      if (t > d.delay && mat.opacity < d.tOp) {
+        mat.opacity = Math.min(d.tOp, mat.opacity + 0.006);
+      }
+      if (mat.opacity > 0.001) {
+        const s = t * d.spd;
+        d.sp.position.x = d.bp.x + Math.sin(s        + d.ph)  * d.amp;
+        d.sp.position.y = d.bp.y + Math.cos(s * 0.63  + d.phY) * d.amp * 0.75;
+        d.sp.position.z = d.bp.z + Math.sin(s * 0.47  + d.ph + 1.8) * d.amp * 0.55;
+      }
+    }
+
+    // Panel bob + subtle sway
+    for (const mesh of r03Meshes) {
+      const ud = mesh.userData;
+      if (ud.initialY !== undefined) {
+        mesh.position.y = ud.initialY + Math.sin(t * 0.38 + ud.bobPhase) * ud.bobAmp;
+        mesh.rotation.y = ud.baseRotY  + Math.sin(t * 0.25 + ud.rotPhase) * 0.04;
+      }
+    }
+
+    // Wall edge glow
+    if (r03DoorGlowMat) {
+      if (r03WallGlowActive || isHoveringDoor) {
+        const base  = isHoveringDoor ? 0.70 : 0.30;
+        const range = isHoveringDoor ? 0.25 : 0.22;
+        const glow  = base + range * Math.sin(t * 1.6);
+        r03DoorGlowMat.opacity = glow;
+        if (r03DoorGroup && r03DoorGroup.material) {
+          r03DoorGroup.material.opacity = glow * 0.12;
+        }
+      } else {
+        r03DoorGlowMat.opacity = 0;
+        if (r03DoorGroup && r03DoorGroup.material) r03DoorGroup.material.opacity = 0;
+      }
+    }
+  }
+
+  renderer.render(activeScene, camera);
+})(0);
+
+
+/* ═══════════════════════════════════════════
+   ENTER SEQUENCE
+═══════════════════════════════════════════ */
+
+document.getElementById('enter-btn').addEventListener('click', () => {
+  document.getElementById('landing').classList.add('out');
+
+  voidActive = true;
+  idleRotate = true;
+
+  // Start audio + schedule word appearances
+  startVoidSequence();
+
+  setTimeout(() => {
+    document.getElementById('landing').style.display = 'none';
+    document.getElementById('room-tag').style.opacity = '1';
+    const hint = document.getElementById('hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 9000);
+  }, 2900);
+});
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  if (activeScene === r03Scene) returnToRoom02();
+  else if (activeScene === r02Scene) returnToRoom01();
+  else returnToVoid();
+});
+
+/* ═══════════════════════════════════════════
+   RESIZE
+═══════════════════════════════════════════ */
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+})();
+</script>
+</body>
+</html>
