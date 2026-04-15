@@ -8,6 +8,57 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; font-family: Georgia, serif; }
 
+    /* ── Start overlay ─────────────────────────────── */
+    #start-overlay {
+      position: fixed; inset: 0;
+      background: #000;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 28px;
+      z-index: 9999;
+    }
+    #start-overlay h1 {
+      color: #fff;
+      font-size: clamp(28px, 7vw, 48px);
+      font-weight: normal;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+    #start-overlay p {
+      color: rgba(255,255,255,0.55);
+      font-size: clamp(12px, 3vw, 15px);
+      font-style: italic;
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.7;
+    }
+    #start-btn {
+      background: transparent;
+      border: 1px solid rgba(180,20,20,0.7);
+      color: rgba(220,60,60,0.9);
+      font-family: Georgia, serif;
+      font-size: 12px;
+      letter-spacing: .36em;
+      text-transform: uppercase;
+      padding: 15px 48px;
+      cursor: pointer;
+      box-shadow: 0 0 18px rgba(180,20,20,0.28);
+      outline: none;
+    }
+    #start-btn:active {
+      border-color: rgba(220,40,40,1);
+      color: #ff4444;
+    }
+    #error-msg {
+      color: #ff6666;
+      font-size: 13px;
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.6;
+      display: none;
+    }
+
+    /* ── Instructions bar ──────────────────────────── */
     #instructions {
       position: fixed; bottom: 0; left: 0; right: 0;
       padding: 18px 24px 24px;
@@ -17,7 +68,7 @@
       letter-spacing: .12em;
       line-height: 1.7;
       pointer-events: none;
-      z-index: 999;
+      z-index: 1000;
       background: linear-gradient(transparent, rgba(0,0,0,0.72));
     }
     #instructions strong {
@@ -28,22 +79,47 @@
       letter-spacing: .18em;
       text-transform: uppercase;
     }
+
+    /* ── A-Frame scene hidden until camera granted ─── */
+    a-scene { display: none; }
   </style>
 </head>
 <body>
+
+<!-- Start overlay — shown first, removed after camera permission -->
+<div id="start-overlay">
+  <h1>The 37 Words</h1>
+  <p>A WebAR experience.<br>Point your camera at the Hiro marker.</p>
+  <button id="start-btn">Tap to Start AR Experience</button>
+  <div id="error-msg"></div>
+</div>
 
 <div id="instructions">
   <strong>The 37 Words</strong>
   Point your camera at the Hiro marker to enter The 37 Words
 </div>
 
+<!-- Scripts must load before a-scene is parsed -->
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+<script>
+// Register component before a-scene is in the DOM
+AFRAME.registerComponent('cursor-listener', {
+  init: function () {
+    this.el.addEventListener('click', function () {
+      window.open('https://37words.netlify.app', '_blank');
+    });
+  }
+});
+</script>
+
 <a-scene
   embedded
-  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; matrixCodeType: 3x3;"
   vr-mode-ui="enabled: false"
   renderer="logarithmicDepthBuffer: true; antialias: true;"
 >
-
   <!-- Assets -->
   <a-assets>
     <img id="door-img" src="door-transition.png" crossorigin="anonymous">
@@ -64,7 +140,7 @@
       cursor-listener
     ></a-image>
 
-    <!-- Pulsing glow ring behind the door -->
+    <!-- Pulsing glow plane behind the door -->
     <a-plane
       width="1.7" height="2.2"
       position="0 1.2 -0.01"
@@ -73,7 +149,7 @@
       animation="property: material.opacity; from: 0.0; to: 0.22; dir: alternate; dur: 1100; easing: easeInOutSine; loop: true;"
     ></a-plane>
 
-    <!-- Floating words — arc around the door -->
+    <!-- Floating words -->
     <a-text value="No person" color="#ffffff" align="center"
       position="-0.9 1.9 0" rotation="-90 0 0"
       width="2" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
@@ -124,31 +200,53 @@
 
   </a-marker>
 
-  <!-- Camera -->
-  <a-entity camera></a-entity>
+  <!-- Camera with raycaster for tap-to-click -->
+  <a-entity camera>
+    <a-entity
+      cursor="fuse: false; rayOrigin: mouse;"
+      raycaster="objects: .clickable; far: 100;"
+    ></a-entity>
+  </a-entity>
 
 </a-scene>
 
-<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 <script>
-  // Component: tap the door → open full experience
-  AFRAME.registerComponent('cursor-listener', {
-    init: function () {
-      this.el.addEventListener('click', function () {
-        window.open('https://37words.netlify.app', '_blank');
-      });
-    }
-  });
+(function () {
+  const btn      = document.getElementById('start-btn');
+  const overlay  = document.getElementById('start-overlay');
+  const scene    = document.querySelector('a-scene');
+  const errorMsg = document.getElementById('error-msg');
 
-  // Cursor entity for raycasting on mobile tap
-  const cam = document.querySelector('[camera]');
-  if (cam) {
-    const cursor = document.createElement('a-entity');
-    cursor.setAttribute('cursor', 'fuse: false; rayOrigin: mouse;');
-    cursor.setAttribute('raycaster', 'objects: .clickable; far: 100;');
-    cam.appendChild(cursor);
-  }
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+    errorMsg.style.display = 'none';
+
+    // Request camera — this is what Safari iOS requires a user gesture for
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+      .then(function (stream) {
+        // Stop the test stream — AR.js will open its own
+        stream.getTracks().forEach(function (t) { t.stop(); });
+
+        // Show the AR scene
+        scene.style.display = 'block';
+        overlay.style.display = 'none';
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = 'Tap to Start AR Experience';
+        errorMsg.style.display = 'block';
+        if (err.name === 'NotAllowedError') {
+          errorMsg.textContent = 'Camera access denied. Please allow camera access in your browser settings and try again.';
+        } else if (err.name === 'NotFoundError') {
+          errorMsg.textContent = 'No camera found on this device.';
+        } else {
+          errorMsg.textContent = 'Could not access camera: ' + err.message;
+        }
+      });
+  });
+})();
 </script>
+
 </body>
 </html>
