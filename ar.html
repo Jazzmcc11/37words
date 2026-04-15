@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>The 37 Words — AR</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: Georgia, serif; }
+
+    #instructions {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 18px 24px 24px;
+      text-align: center;
+      color: rgba(255,255,255,0.72);
+      font-size: 13px;
+      letter-spacing: .12em;
+      line-height: 1.7;
+      pointer-events: none;
+      z-index: 999;
+      background: linear-gradient(transparent, rgba(0,0,0,0.72));
+    }
+    #instructions strong {
+      display: block;
+      color: #fff;
+      font-size: 15px;
+      margin-bottom: 4px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+<div id="instructions">
+  <strong>The 37 Words</strong>
+  Point your camera at the Hiro marker to enter The 37 Words
+</div>
+
+<a-scene
+  embedded
+  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+  vr-mode-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true; antialias: true;"
+>
+
+  <!-- Assets -->
+  <a-assets>
+    <img id="door-img" src="door-transition.png" crossorigin="anonymous">
+  </a-assets>
+
+  <!-- Hiro marker -->
+  <a-marker preset="hiro" id="hiro-marker">
+
+    <!-- Door panel — 1.5 × 2, centred above marker -->
+    <a-image
+      id="door-panel"
+      src="#door-img"
+      width="1.5" height="2"
+      position="0 1.2 0"
+      rotation="-90 0 0"
+      material="transparent: true; alphaTest: 0.05;"
+      class="clickable"
+      cursor-listener
+    ></a-image>
+
+    <!-- Pulsing glow ring behind the door -->
+    <a-plane
+      width="1.7" height="2.2"
+      position="0 1.2 -0.01"
+      rotation="-90 0 0"
+      material="color: #ffffff; transparent: true; opacity: 0.0; shader: flat;"
+      animation="property: material.opacity; from: 0.0; to: 0.22; dir: alternate; dur: 1100; easing: easeInOutSine; loop: true;"
+    ></a-plane>
+
+    <!-- Floating words — arc around the door -->
+    <a-text value="No person" color="#ffffff" align="center"
+      position="-0.9 1.9 0" rotation="-90 0 0"
+      width="2" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
+      material="shader: flat;"
+      animation="property: material.opacity; from: 0.55; to: 1.0; dir: alternate; dur: 1800; easing: easeInOutSine; loop: true;"
+    ></a-text>
+
+    <a-text value="in the United States" color="#ffffff" align="center"
+      position="0 2.35 0" rotation="-90 0 0"
+      width="2.4" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
+      material="shader: flat;"
+      animation="property: material.opacity; from: 0.45; to: 0.95; dir: alternate; dur: 2200; easing: easeInOutSine; loop: true;"
+    ></a-text>
+
+    <a-text value="shall" color="#ffffff" align="center"
+      position="0.95 1.9 0" rotation="-90 0 0"
+      width="1.6" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
+      material="shader: flat;"
+      animation="property: material.opacity; from: 0.5; to: 1.0; dir: alternate; dur: 1500; easing: easeInOutSine; loop: true;"
+    ></a-text>
+
+    <a-text value="on the basis of sex" color="rgba(200,200,255,1)" align="center"
+      position="-0.7 0.55 0" rotation="-90 0 0"
+      width="2" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
+      material="shader: flat;"
+      animation="property: material.opacity; from: 0.3; to: 0.8; dir: alternate; dur: 2600; easing: easeInOutSine; loop: true;"
+    ></a-text>
+
+    <a-text value="be excluded" color="rgba(200,200,255,1)" align="center"
+      position="0.8 0.55 0" rotation="-90 0 0"
+      width="1.8" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
+      material="shader: flat;"
+      animation="property: material.opacity; from: 0.3; to: 0.75; dir: alternate; dur: 2900; easing: easeInOutSine; loop: true;"
+    ></a-text>
+
+    <!-- Label below the door -->
+    <a-text
+      value="The 37 Words  ·  Title IX  ·  1972"
+      color="rgba(220,180,180,1)"
+      align="center"
+      position="0 0.08 0"
+      rotation="-90 0 0"
+      width="2.8"
+      font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
+      material="shader: flat;"
+      animation="property: material.opacity; from: 0.5; to: 0.9; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true;"
+    ></a-text>
+
+  </a-marker>
+
+  <!-- Camera -->
+  <a-entity camera></a-entity>
+
+</a-scene>
+
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<script>
+  // Component: tap the door → open full experience
+  AFRAME.registerComponent('cursor-listener', {
+    init: function () {
+      this.el.addEventListener('click', function () {
+        window.open('https://37words.netlify.app', '_blank');
+      });
+    }
+  });
+
+  // Cursor entity for raycasting on mobile tap
+  const cam = document.querySelector('[camera]');
+  if (cam) {
+    const cursor = document.createElement('a-entity');
+    cursor.setAttribute('cursor', 'fuse: false; rayOrigin: mouse;');
+    cursor.setAttribute('raycaster', 'objects: .clickable; far: 100;');
+    cam.appendChild(cursor);
+  }
+</script>
+</body>
+</html>
