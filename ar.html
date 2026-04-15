@@ -149,53 +149,46 @@ AFRAME.registerComponent('cursor-listener', {
       animation="property: material.opacity; from: 0.0; to: 0.22; dir: alternate; dur: 1100; easing: easeInOutSine; loop: true;"
     ></a-plane>
 
-    <!-- Floating words -->
-    <a-text value="No person" color="#ffffff" align="center"
-      position="-0.9 1.9 0" rotation="-90 0 0"
-      width="2" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
-      material="shader: flat;"
-      animation="property: material.opacity; from: 0.55; to: 1.0; dir: alternate; dur: 1800; easing: easeInOutSine; loop: true;"
+    <!-- Dark backing plane behind the main text -->
+    <a-plane
+      width="4.5" height="0.5"
+      position="0 0.8 0.001"
+      rotation="-90 0 0"
+      material="color: #000000; transparent: true; opacity: 0.55; shader: flat;"
+    ></a-plane>
+
+    <!-- Main floating text — "No person in the United States shall" -->
+    <a-text
+      value="No person in the United States shall"
+      color="#ffffff"
+      align="center"
+      position="0 0.8 0"
+      rotation="-90 0 0"
+      width="4"
+      font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
+      material="shader: flat; emissive: #ffffff; emissiveIntensity: 0.6;"
+      animation="property: material.opacity; from: 0.75; to: 1.0; dir: alternate; dur: 1600; easing: easeInOutSine; loop: true;"
     ></a-text>
 
-    <a-text value="in the United States" color="#ffffff" align="center"
-      position="0 2.35 0" rotation="-90 0 0"
-      width="2.4" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
-      material="shader: flat;"
-      animation="property: material.opacity; from: 0.45; to: 0.95; dir: alternate; dur: 2200; easing: easeInOutSine; loop: true;"
-    ></a-text>
-
-    <a-text value="shall" color="#ffffff" align="center"
-      position="0.95 1.9 0" rotation="-90 0 0"
-      width="1.6" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
-      material="shader: flat;"
-      animation="property: material.opacity; from: 0.5; to: 1.0; dir: alternate; dur: 1500; easing: easeInOutSine; loop: true;"
-    ></a-text>
-
-    <a-text value="on the basis of sex" color="rgba(200,200,255,1)" align="center"
-      position="-0.7 0.55 0" rotation="-90 0 0"
-      width="2" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
-      material="shader: flat;"
-      animation="property: material.opacity; from: 0.3; to: 0.8; dir: alternate; dur: 2600; easing: easeInOutSine; loop: true;"
-    ></a-text>
-
-    <a-text value="be excluded" color="rgba(200,200,255,1)" align="center"
-      position="0.8 0.55 0" rotation="-90 0 0"
-      width="1.8" font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
-      material="shader: flat;"
-      animation="property: material.opacity; from: 0.3; to: 0.75; dir: alternate; dur: 2900; easing: easeInOutSine; loop: true;"
-    ></a-text>
+    <!-- Dark backing plane behind the label -->
+    <a-plane
+      width="4.0" height="0.4"
+      position="0 -1.2 0.001"
+      rotation="-90 0 0"
+      material="color: #000000; transparent: true; opacity: 0.55; shader: flat;"
+    ></a-plane>
 
     <!-- Label below the door -->
     <a-text
       value="The 37 Words  ·  Title IX  ·  1972"
-      color="rgba(220,180,180,1)"
+      color="#ffffff"
       align="center"
-      position="0 0.08 0"
+      position="0 -1.2 0"
       rotation="-90 0 0"
-      width="2.8"
+      width="3"
       font="https://cdn.aframe.io/fonts/KelsonSans.fnt"
-      material="shader: flat;"
-      animation="property: material.opacity; from: 0.5; to: 0.9; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true;"
+      material="shader: flat; emissive: #ffffff; emissiveIntensity: 0.4;"
+      animation="property: material.opacity; from: 0.6; to: 1.0; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true;"
     ></a-text>
 
   </a-marker>
